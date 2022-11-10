@@ -21,34 +21,40 @@ def get_show_more_url(my_soup) -> str:
 
 
 def extract_show_more_soup(my_soup):
-    """return a table of all additional rows"""
+    """return a beautifulsoup object of all additional rows"""
     url = get_show_more_url(my_soup)
     new_soup = create_soup_from_link(url)
     return new_soup
 
 
-def get_date(quake_row):
-    return quake_row.contents[0]
+def get_date(quake_data_cells):
+    """return the date of the earthquake"""
+    return quake_data_cells[0].contents[0]
 
 
-def get_magnitude(quake_row):
-    return quake_row.contents[0].text
+def get_magnitude(quake_data_cells):
+    """return the magnitude of the earthquake"""
+    return quake_data_cells[1].contents[0].text
 
 
-def get_depth(quake_row):
-    return quake_row.contents[2].replace('\xa0', '')
+def get_depth(quake_data_cells):
+    """return the depth of the earthquake"""
+    return quake_data_cells[1].contents[2].replace('\xa0', '')
 
 
-def get_nearest_volcano(quake_row):
-    return quake_row.text
+def get_nearest_volcano(quake_data_cells):
+    """return the nearest volcano of the earthquake"""
+    return quake_data_cells[2].text
 
 
-def get_location(quake_row):
-    return quake_row.text.rstrip('I FELT IT')
+def get_location(quake_data_cells):
+    """return the location of the earthquake"""
+    return quake_data_cells[3].text.rstrip('I FELT IT')
 
 
-def get_details_url(quake_row):
-    return quake_row.find("a")["href"]
+def get_details_url(quake_data_cells):
+    """return the details url  to show more about the earthquake"""
+    return quake_data_cells[4].find("a")["href"]
 
 
 def extract_data_from_quakes(quakes) -> tuple:
@@ -57,16 +63,16 @@ def extract_data_from_quakes(quakes) -> tuple:
     id_to_data_dict = {}
     id_to_details = {}
     for idx, q in enumerate(quakes):
-        print(f'fetching row {idx + 1}')
+        print(f'fetching quake num {idx + 1} data')
         eq_id = q.get('id')
         cells = q.find_all('td')
-        url = get_details_url(cells[4])
+        url = get_details_url(cells)
         data = [
-            get_date(cells[0]),
-            get_magnitude(cells[1]),
-            get_depth(cells[1]),
-            get_nearest_volcano(cells[2]),
-            get_location(cells[3]),
+            get_date(cells),
+            get_magnitude(cells),
+            get_depth(cells),
+            get_nearest_volcano(cells),
+            get_location(cells),
             url,
         ]
         id_to_data_dict[eq_id] = data
@@ -95,7 +101,7 @@ def scrap_from_p2(quake_url) -> object:
 
 
 def main_scrapper_p1():
-    """ This will scrap the data from the table in the 1st page """
+    """ This will scrap all the updated data and more details about each earthquake"""
     url = "https://www.allquakes.com/earthquakes/today.html"
     soup = create_soup_from_link(url)
     quakes = get_eq(soup)
@@ -106,8 +112,17 @@ def main_scrapper_p1():
     table_eq_dirty = quakes + quakes_show_more
     data_dict, details_dict = extract_data_from_quakes(table_eq_dirty)
 
+    # printing all data
+    print('\nMain Page Table Information\n')
     for q_id in data_dict:
-        print(f'{q_id}\n{data_dict[q_id]}\n{details_dict[q_id]}')
+        print(f'{data_dict[q_id]}')
+
+
+    for idx, q_id in enumerate(details_dict):
+        print(f'\ndetails of earthquake num {idx}, id = {q_id}')
+        for raw in details_dict[q_id]:
+            print(raw)
+        print('\n\n')
 
 
 def main():

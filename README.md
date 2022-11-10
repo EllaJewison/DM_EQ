@@ -6,7 +6,7 @@ In thes files you will find a webscaper for the main table in "https://www.allqu
 and the links inside table for more information 
 
 ## Instructions 
-ofter cloning project enter in the my_python.py and press run 
+after cloning project run scraper.py to scrape and display the updated earthquakes' data.
 
 p.s. make sur you install the requirements.txt
 
