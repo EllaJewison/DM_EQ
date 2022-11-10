@@ -5,6 +5,10 @@ Description: of what this project does and who it's for
 In thes files you will find a webscaper for the main table in "https://www.allquakes.com/earthquakes/today.html"
 and the links inside table for more information 
 
+##Instructions 
+ofter cloning project enter in the my_python.py and press run 
+p.s. make sur you install the requirements.txt
+enjoy
 
 ## Documentation
 
