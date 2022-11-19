@@ -39,7 +39,10 @@ def get_magnitude(quake_data_cells):
 
 def get_depth(quake_data_cells):
     """return the depth of the earthquake"""
-    return quake_data_cells[1].contents[2].replace('\xa0', '')
+    try:
+        return quake_data_cells[1].contents[2].replace('\xa0', '')
+    except IndexError:
+        return ''
 
 
 def get_nearest_volcano(quake_data_cells):
