@@ -48,4 +48,4 @@ enjoy
 
 ## Authors
 
-- [@EllaJewisonrine , @Sassaraf ,@emunac](https://www.github.com/octokatherine)
+- [@EllaJewison , @Sassaraf ,@emunac](https://www.github.com/octokatherine)
