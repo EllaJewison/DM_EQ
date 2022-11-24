@@ -1,11 +1,20 @@
 
-# Earthquake Data Mining Project
+# Earthquake Data Mining Project :volcano:
 
-Description: of what this project does and who it's for
-In thes files you will find a webscaper for the main table in "https://www.allquakes.com/earthquakes/today.html"
-and the links inside table for more information 
+##  Description
+This is a program for scraping updated information about earthquakes from the website: 
+[earthquakes](https://www.allquakes.com/earthquakes/today.html). 
 
-## Instructions and description
+The scraping  done in two steps: 
+1. Collect the data from the main page contains the most recent quakes of magnitude 3.6 or higher.
+That includes an important data of each quake - date, magnitude, location etc, and a link to a page with more information about the quake.
+2. Collect the data from each earthquake link for more detailed information. This information includes 
+nearby towns and cities, weather, numbers of reports, etc.
+
+To show the progress, the program prints to standard output the current earthquake
+number that is its data is now collected. Once all the data is collected, print first the data from the main page, and then the more detailed data for each quake.
+
+## Instructions
 
 Clone and run the scraper on this website "https://www.allquakes.com/earthquakes/today.html". 
 This scraper will provide you with information from the main page. The first table returned will have the following information:
