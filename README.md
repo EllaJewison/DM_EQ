@@ -43,6 +43,8 @@ p.s. make sur you install the requirements.txt
 enjoy
 
 
+## What is Next
+The next step is to create a CLI for the user to get specific earthquake information, and store all the collected data in a data frame for better access.
 
 # URL links in the table EQ
 
