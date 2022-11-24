@@ -29,15 +29,9 @@ You will be provoded also with a more detail table for each earthquake. This tab
 - estimated seismic energy release
 
 
-Data 
-after cloning project run scraper.py to scrape and display the updated earthquakes' data.
-
 p.s. make sur you install the requirements.txt
 
 enjoy
-
-
-## Documentation
 
 
 
