@@ -7,28 +7,28 @@ from bs4 import BeautifulSoup
 
 
 def create_soup_from_link(link):
-    """ creates soup from link """
+    """ Finds all the html information from the url link passed in the input  """
     page = requests.get(link)  # asking permission from the website to fetch data, If response is 200 it's ok
     my_soup = BeautifulSoup(page.content, "html.parser")  # creating a bs object that takes page.content as an input
     return my_soup
 
 
 def get_show_more_url(my_soup) -> str:
-    """the function returns the url that include show more"""
+    """the function receives the html from the website and returns the url to access the "show more" button and get the complete list of earthquakes"""
     script = my_soup.find('div', {'class': 'table-wrap'}).script.text
     url_regex = re.search(r'var url="(.*)"\+"(.*)";', script)
     return url_regex.group(1) + url_regex.group(2)
 
 
 def extract_show_more_soup(my_soup):
-    """return a beautifulsoup object of all additional rows"""
+    """ Finds all the html information from the url link passed in the input (here it will return all additional rows from the show more button)"""
     url = get_show_more_url(my_soup)
     new_soup = create_soup_from_link(url)
     return new_soup
 
 
 def get_date(quake_data_cells):
-    """return the date of the earthquake"""
+    """ Return the date of the earthquake """
     return quake_data_cells[0].contents[0]
 
 
@@ -56,12 +56,12 @@ def get_location(quake_data_cells):
 
 
 def get_details_url(quake_data_cells):
-    """return the details url  to show more about the earthquake"""
+    """return the details url to show more about the earthquake"""
     return quake_data_cells[4].find("a")["href"]
 
 
 def extract_data_from_quakes(quakes) -> tuple:
-    """ This will take the table and make it readable-ish waiting until we can use pandas :) """
+    """ this function reformats the scrapped earthquake information into a list  """
 
     id_to_data_dict = {}
     id_to_details = {}
@@ -104,7 +104,7 @@ def scrap_from_p2(quake_url) -> object:
 
 
 def main_scrapper_p1():
-    """ This will scrap all the updated data and more details about each earthquake"""
+    """ This function takes main page from the url and will scrap all the updated data and more details about each earthquake"""
     url = "https://www.allquakes.com/earthquakes/today.html"
     soup = create_soup_from_link(url)
     quakes = get_eq(soup)
@@ -129,6 +129,7 @@ def main_scrapper_p1():
 
 
 def main():
+    """ function scrapes the earthquakes site. Scrap the individual earthquake information and print the data as list.  """
     main_scrapper_p1()
 
 
