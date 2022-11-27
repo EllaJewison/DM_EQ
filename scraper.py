@@ -7,15 +7,18 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+import json
 
-HELP_MESSAGE = """This is a CLI to scape specific information about earthquakes.
-the program will scape all the relevant information (by date, magnitude or countries) and will update the information
+
+HELP_MESSAGE = """This is a CLI to scrape specific information about earthquakes.
+the program will scrape all the relevant information (by date, magnitude or countries) and will update the information
 in the database.
 
 Usage:
 scraper.py [-h] [--date DATE]
             [--magnitude MAGNITUDE]
             [--countries COUNTRY1 COUNTRY2 ...]
+            [--n_rows NUMBER]
             mysql_user mysql_password
 
 positional arguments:
@@ -27,13 +30,17 @@ options:
   --date START_DATE END_DATE(optional) 
   --magnitude FROM_MAGNITUDE TO_MAGNITUDE(optional)
   --countries COUNTRY1 COUNTRY2 ...  
+  --n_rows NUMBER
 
 Examples:
-scraper.py user password --date 12/11/2022 14/11/2022 -> will scape all earthquakes from 12/11/2022 to 14/11/2022
-scraper.py user password --date 12/11/2022 --magnitude 3.6 8.1 ->
-will scape all earthquakes from 12/11/2022 until today that have magnitude between 3.6 to 8.1
-scraper.py user password --date 12/11/2022 --magnitude 3.6 --countries COUNTRY1 COUNTRY2 ->
-will scape all earthquakes from 12/11/2022 until today that have magnitude above 3.6 that occurred in countries given
+1. scraper.py user password --date 12/11/2022 14/11/2022 -> will scrape all earthquakes from 12/11/2022 to 14/11/2022
+2. scraper.py user password --date 12/11/2022 --magnitude 3.6 8.1 ->
+    will scrape all earthquakes from 12/11/2022 until today that have magnitude between 3.6 to 8.1
+3. scraper.py user password --date 12/11/2022 --magnitude 3.6 --countries COUNTRY1 COUNTRY2 ->
+    will srcape all earthquakes from 12/11/2022 until today
+    that have magnitude above 3.6 that occurred in countries given
+4. scraper.py user password --magnitude 7 --n_rows 100 -> will scrape all earthquakes that have magnitude above 7
+    limited to 100 first earthquakes
 """
 
 
@@ -41,6 +48,7 @@ class DateAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         if len(values) > 2:
             raise ValueError(f'expected start and end date values. got {len(values)} args: {values}\n')
+        # expected at most 2 values, got {len(values)}
         end_date = datetime.now()
         try:
             start_date = datetime.strptime(values[0], '%d/%m/%Y')
@@ -67,9 +75,9 @@ class MagnitudeAction(argparse.Action):
             to_magnitude = float(values[1]) if len(values) == 2 else None
         except ValueError:
             raise ValueError(f'magnitude expected to be decimal number, got {values}')
-        if from_magnitude > to_magnitude:
+        if to_magnitude and from_magnitude > to_magnitude:
             raise ValueError(f'{from_magnitude} must be less than {to_magnitude}')
-        if from_magnitude < 0 or to_magnitude < 0:
+        if from_magnitude < 0 or (to_magnitude and to_magnitude < 0):
             raise ValueError(f'magnitude must be positive, got {from_magnitude}, {to_magnitude}')
 
 
@@ -182,6 +190,8 @@ def main_scrapper_p1():
     table_eq_dirty = quakes + quakes_show_more
     data_dict, details_dict = extract_data_from_quakes(table_eq_dirty)
 
+    url_list = [data_dict[data][5] for data in data_dict]
+
     # printing all data
     print('\nMain Page Table Information\n')
     for q_id in data_dict:
@@ -201,22 +211,28 @@ def main():
     Scrap the individual earthquake information and print the data as list.
     """
 
-    filters = ['date', 'magnitude', 'city']
+    f = open('countries_regions.json')
+    # list of all countries
+    countries = json.load(f)
+    f.close()
+
     parser = argparse.ArgumentParser(add_help=HELP_MESSAGE)
     parser.add_argument('mysql_user', type=str)
     parser.add_argument('mysql_password', type=str)
 
     parser.add_argument('--date', nargs='+', action=DateAction, default=(datetime.now(),))
     parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction, default=(3.6, None))
-    parser.add_argument('--countries', nargs='+', type=str, action='store')
+    parser.add_argument('--countries', nargs='+', type=str, action='store', choices=countries)
+    parser.add_argument('--n_rows', type=int, action='store')
 
     try:
         args = parser.parse_args()
     except Exception as e:
-        print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {parser.format_help()}')
+        print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {HELP_MESSAGE}')
         sys.exit()
 
     main_scrapper_p1()
+
 
 
 if __name__ == '__main__':
