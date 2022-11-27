@@ -4,10 +4,37 @@ on the earthquake website
 import argparse
 import re
 import sys
-
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+
+HELP_MESSAGE = """This is a CLI to scape specific information about earthquakes.
+the program will scape all the relevant information (by date, magnitude or countries) and will update the information
+in the database.
+
+Usage:
+scraper.py [-h] [--date DATE]
+            [--magnitude MAGNITUDE]
+            [--countries COUNTRY1 COUNTRY2 ...]
+            mysql_user mysql_password
+
+positional arguments:
+  mysql_user
+  mysql_password
+
+options:
+  -h, --help            show this help message and exit
+  --date START_DATE END_DATE(optional) 
+  --magnitude FROM_MAGNITUDE TO_MAGNITUDE(optional)
+  --countries COUNTRY1 COUNTRY2 ...  
+
+Examples:
+scraper.py user password --date 12/11/2022 14/11/2022 -> will scape all earthquakes from 12/11/2022 to 14/11/2022
+scraper.py user password --date 12/11/2022 --magnitude 3.6 8.1 ->
+will scape all earthquakes from 12/11/2022 until today that have magnitude between 3.6 to 8.1
+scraper.py user password --date 12/11/2022 --magnitude 3.6 --countries COUNTRY1 COUNTRY2 ->
+will scape all earthquakes from 12/11/2022 until today that have magnitude above 3.6 that occurred in countries given
+"""
 
 
 class DateAction(argparse.Action):
@@ -40,6 +67,10 @@ class MagnitudeAction(argparse.Action):
             to_magnitude = float(values[1]) if len(values) == 2 else None
         except ValueError:
             raise ValueError(f'magnitude expected to be decimal number, got {values}')
+        if from_magnitude > to_magnitude:
+            raise ValueError(f'{from_magnitude} must be less than {to_magnitude}')
+        if from_magnitude < 0 or to_magnitude < 0:
+            raise ValueError(f'magnitude must be positive, got {from_magnitude}, {to_magnitude}')
 
 
 def create_soup_from_link(link):
@@ -164,24 +195,6 @@ def main_scrapper_p1():
         print('\n\n')
 
 
-HELP_MESSAGE = """ HI
-"""
-
-def cli_validator(args):
-    """
-    validate the user parameters for scraping
-    """
-    if args.filter == 'date':
-        try:
-            start_date = datetime.strptime(args.start_range, '%d/%m/%Y')
-            end_date = datetime.today() if args.end_range == 'no_end_range' else\
-                datetime.strptime(args.end_range, '%d/%m/%Y')
-            if end_date < start_date:
-                raise ValueError('Start date must be before end date and must be before today')
-        except ValueError as e:
-            raise ValueError(f'Could not convert {args.start_range} or {args.end_range} to date.\n {e}')
-
-
 def main():
     """
     function scrapes the earthquakes site.
@@ -189,17 +202,18 @@ def main():
     """
 
     filters = ['date', 'magnitude', 'city']
-    parser = argparse.ArgumentParser(description='CLI to scape specific information about earthquakes')
+    parser = argparse.ArgumentParser(add_help=HELP_MESSAGE)
     parser.add_argument('mysql_user', type=str)
     parser.add_argument('mysql_password', type=str)
 
     parser.add_argument('--date', nargs='+', action=DateAction, default=(datetime.now(),))
     parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction, default=(3.6, None))
+    parser.add_argument('--countries', nargs='+', type=str, action='store')
 
     try:
         args = parser.parse_args()
     except Exception as e:
-        print(f'Wrong arguments passed:\n{e}\nSee Usage for introduction.\n {parser.format_help()}')
+        print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {parser.format_help()}')
         sys.exit()
 
     main_scrapper_p1()
