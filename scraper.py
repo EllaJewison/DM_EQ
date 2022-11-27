@@ -1,9 +1,45 @@
 """This is the project of Ella, Emuna and Salomé
 on the earthquake website
 "https://www.allquakes.com/earthquakes/today.html" """
+import argparse
 import re
+import sys
+
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime
+
+
+class DateAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if len(values) > 2:
+            raise ValueError(f'expected start and end date values. got {len(values)} args: {values}\n')
+        end_date = datetime.now()
+        try:
+            start_date = datetime.strptime(values[0], '%d/%m/%Y')
+        except ValueError as e:
+            raise ValueError(f'Could not convert {values[0]} to date.\n {e}')
+
+        if len(values) == 2:
+            try:
+                end_date = datetime.strptime(values[1], '%d/%m/%Y')
+            except ValueError as e:
+                raise ValueError(f'Could not convert {values[1]} to date.\n {e}')
+
+        if end_date < start_date:
+            raise ValueError(f'Start date {start_date} must be before end date {end_date}\n')
+        setattr(namespace, self.dest, (start_date, end_date))
+
+
+class MagnitudeAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if len(values) > 2:
+            raise ValueError(f'expected at most 2 values for magnitude range. got {len(values)} args: {values}\n')
+        try:
+            from_magnitude = float(values[0])
+            to_magnitude = float(values[1]) if len(values) == 2 else None
+        except ValueError:
+            raise ValueError(f'magnitude expected to be decimal number, got {values}')
 
 
 def create_soup_from_link(link):
@@ -128,8 +164,44 @@ def main_scrapper_p1():
         print('\n\n')
 
 
+HELP_MESSAGE = """ HI
+"""
+
+def cli_validator(args):
+    """
+    validate the user parameters for scraping
+    """
+    if args.filter == 'date':
+        try:
+            start_date = datetime.strptime(args.start_range, '%d/%m/%Y')
+            end_date = datetime.today() if args.end_range == 'no_end_range' else\
+                datetime.strptime(args.end_range, '%d/%m/%Y')
+            if end_date < start_date:
+                raise ValueError('Start date must be before end date and must be before today')
+        except ValueError as e:
+            raise ValueError(f'Could not convert {args.start_range} or {args.end_range} to date.\n {e}')
+
+
 def main():
-    """ function scrapes the earthquakes site. Scrap the individual earthquake information and print the data as list.  """
+    """
+    function scrapes the earthquakes site.
+    Scrap the individual earthquake information and print the data as list.
+    """
+
+    filters = ['date', 'magnitude', 'city']
+    parser = argparse.ArgumentParser(description='CLI to scape specific information about earthquakes')
+    parser.add_argument('mysql_user', type=str)
+    parser.add_argument('mysql_password', type=str)
+
+    parser.add_argument('--date', nargs='+', action=DateAction, default=(datetime.now(),))
+    parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction, default=(3.6, None))
+
+    try:
+        args = parser.parse_args()
+    except Exception as e:
+        print(f'Wrong arguments passed:\n{e}\nSee Usage for introduction.\n {parser.format_help()}')
+        sys.exit()
+
     main_scrapper_p1()
 
 
