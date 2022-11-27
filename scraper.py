@@ -4,6 +4,10 @@ on the earthquake website
 import re
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
+from datetime import datetime
+from tabulate import tabulate
+
 
 
 def create_soup_from_link(link):
@@ -14,14 +18,16 @@ def create_soup_from_link(link):
 
 
 def get_show_more_url(my_soup) -> str:
-    """the function receives the html from the website and returns the url to access the "show more" button and get the complete list of earthquakes"""
+    """the function receives the html from the website and returns the url to access the "show more"
+    button and get the complete list of earthquakes"""
     script = my_soup.find('div', {'class': 'table-wrap'}).script.text
     url_regex = re.search(r'var url="(.*)"\+"(.*)";', script)
     return url_regex.group(1) + url_regex.group(2)
 
 
 def extract_show_more_soup(my_soup):
-    """ Finds all the html information from the url link passed in the input (here it will return all additional rows from the show more button)"""
+    """ Finds all the html information from the url link passed in the input (here it will return
+     all additional rows from the show more button)"""
     url = get_show_more_url(my_soup)
     new_soup = create_soup_from_link(url)
     return new_soup
@@ -103,8 +109,26 @@ def scrap_from_p2(quake_url) -> object:
     return table_p2
 
 
+def extract_url_list(data_dict, details_dict):
+    """ used to return a list of url for the pandas scapper p2
+    """
+    # print('\nMain Page Table Information\n')
+    # for q_id in data_dict:
+        # print(f'{data_dict[q_id]}')
+
+    # for idx, q_id in enumerate(details_dict):
+        # print(f'\ndetails of earthquake num {idx}, id = {q_id}')
+        # for raw in details_dict[q_id]:
+            # print(raw)
+        # print('\n\n')
+
+    url_list = [data_dict[data][5] for data in data_dict.keys() if data is not None]
+
+    return url_list
+
 def main_scrapper_p1():
-    """ This function takes main page from the url and will scrap all the updated data and more details about each earthquake"""
+    """ This function takes main page from the url and will scrap all the updated data
+    and more details about each earthquake"""
     url = "https://www.allquakes.com/earthquakes/today.html"
     soup = create_soup_from_link(url)
     quakes = get_eq(soup)
@@ -114,23 +138,44 @@ def main_scrapper_p1():
 
     table_eq_dirty = quakes + quakes_show_more
     data_dict, details_dict = extract_data_from_quakes(table_eq_dirty)
+    url_list = extract_url_list(data_dict, details_dict)
 
-    # printing all data
-    print('\nMain Page Table Information\n')
-    for q_id in data_dict:
-        print(f'{data_dict[q_id]}')
+    return url_list
+
+def scraping_with_pandas_p2(url):
+    """ this function is used to scrape the detailed pages of each earthquakes.
+    It returns a pandas dataframe of the available data"""
+    # testing with one URL
+    # url = "https://www.allquakes.com/earthquakes/quake-info/7220305/mag2quake-Nov-26-2022-43km-SE-of-Avalon-CA.html"
+    page = requests.get(url)
+    soup = BeautifulSoup(page.text, 'lxml')
+    dfs = pd.read_html(page.text)   # this creates dataframe directly from the table in h
+    # tml !! In out case it scraped 2 tables from the page
+    # df[0] is  this is the table that we need
+    table_detailed = dfs[0].transpose()
+    table_detailed.columns = table_detailed.iloc[0]
+    table_detailed = table_detailed.drop(table_detailed.index[0])
+    return table_detailed
 
 
-    for idx, q_id in enumerate(details_dict):
-        print(f'\ndetails of earthquake num {idx}, id = {q_id}')
-        for raw in details_dict[q_id]:
-            print(raw)
-        print('\n\n')
-
+def scraping_with_pandas_all_earthquakes(url_list):
+    """ this returns a pandas dataframe of all the earthquakes detailed (every p2)"""
+    table_detailed_all_earthquakes = pd.DataFrame()
+    for link in url_list:
+        table_detailed = scraping_with_pandas_p2(link)
+        table_detailed_all_earthquakes = pd.concat([table_detailed_all_earthquakes, table_detailed])
+    return table_detailed_all_earthquakes
 
 def main():
-    """ function scrapes the earthquakes site. Scrap the individual earthquake information and print the data as list.  """
-    main_scrapper_p1()
+    """ function scrapes the earthquakes site. Scrap the individual earthquake
+    information and print the data as list.
+     This uses the mainscrapper_p1 and the pandas scaper for page 2"""
+    url_list = main_scrapper_p1()
+    url_main = 'https://www.volcanodiscovery.com/'
+    url_list = [url_main+link for link in url_list]
+    test = scraping_with_pandas_all_earthquakes(url_list)
+    return test
+
 
 
 if __name__ == '__main__':
