@@ -6,18 +6,20 @@ import re
 import sys
 import requests
 from bs4 import BeautifulSoup
+import pandas as pd
 from datetime import datetime
-import json
+from tabulate import tabulate
 
+from datetime import datetime
+from cleaning_converting import convert
 
 HELP_MESSAGE = """This is a CLI to scrape specific information about earthquakes.
-the program will scrape all the relevant information (by date, magnitude or countries) and will update the information
+the program will scrape all the relevant information (by date, magnitude) and will update the information
 in the database.
 
 Usage:
 scraper.py [-h] [--date DATE]
             [--magnitude MAGNITUDE]
-            [--countries COUNTRY1 COUNTRY2 ...]
             [--n_rows NUMBER]
             mysql_user mysql_password
 
@@ -29,16 +31,15 @@ options:
   -h, --help            show this help message and exit
   --date START_DATE END_DATE(optional) 
   --magnitude FROM_MAGNITUDE TO_MAGNITUDE(optional)
-  --countries COUNTRY1 COUNTRY2 ...  
   --n_rows NUMBER
 
 Examples:
 1. scraper.py user password --date 12/11/2022 14/11/2022 -> will scrape all earthquakes from 12/11/2022 to 14/11/2022
 2. scraper.py user password --date 12/11/2022 --magnitude 3.6 8.1 ->
     will scrape all earthquakes from 12/11/2022 until today that have magnitude between 3.6 to 8.1
-3. scraper.py user password --date 12/11/2022 --magnitude 3.6 --countries COUNTRY1 COUNTRY2 ->
+3. scraper.py user password --date 12/11/2022 --magnitude 3.6  ->
     will srcape all earthquakes from 12/11/2022 until today
-    that have magnitude above 3.6 that occurred in countries given
+    that have magnitude above 3.6
 4. scraper.py user password --magnitude 7 --n_rows 100 -> will scrape all earthquakes that have magnitude above 7
     limited to 100 first earthquakes
 """
@@ -89,14 +90,16 @@ def create_soup_from_link(link):
 
 
 def get_show_more_url(my_soup) -> str:
-    """the function receives the html from the website and returns the url to access the "show more" button and get the complete list of earthquakes"""
+    """the function receives the html from the website and returns the url to access the "show more"
+    button and get the complete list of earthquakes"""
     script = my_soup.find('div', {'class': 'table-wrap'}).script.text
     url_regex = re.search(r'var url="(.*)"\+"(.*)";', script)
     return url_regex.group(1) + url_regex.group(2)
 
 
 def extract_show_more_soup(my_soup):
-    """ Finds all the html information from the url link passed in the input (here it will return all additional rows from the show more button)"""
+    """ Finds all the html information from the url link passed in the input (here it will return
+     all additional rows from the show more button)"""
     url = get_show_more_url(my_soup)
     new_soup = create_soup_from_link(url)
     return new_soup
@@ -135,11 +138,10 @@ def get_details_url(quake_data_cells):
     return quake_data_cells[4].find("a")["href"]
 
 
-def extract_data_from_quakes(quakes) -> tuple:
+def extract_data_from_quakes(quakes, args) -> dict:
     """ this function reformats the scrapped earthquake information into a list  """
 
     id_to_data_dict = {}
-    id_to_details = {}
     for idx, q in enumerate(quakes):
         print(f'fetching quake num {idx + 1} data')
         eq_id = q.get('id')
@@ -153,10 +155,31 @@ def extract_data_from_quakes(quakes) -> tuple:
             get_location(cells),
             url,
         ]
-        id_to_data_dict[eq_id] = data
-        id_to_details[eq_id] = scrap_from_p2(url)
+        if args.magnitude:
+            try:
+                magnitude = float(data[1])
+                if  magnitude < args.magnitude[0]:
+                    continue
+                if args.magnitude[1] and magnitude > args.magnitude[1]:
+                    continue
+            except ValueError:
+                pass
+        if args.date:
+            try:
+                date = datetime.strptime(re.sub(' GMT.*', '', data[0]), '%b %d, %Y %H:%M')
+                if date < args.date[0]:
+                    continue
+                if args.date[1] and date > args.date[1]:
+                    continue
+            except ValueError:
+                pass
 
-    return id_to_data_dict, id_to_details
+        if args.n_rows and len(id_to_data_dict) >= args.n_rows:
+            return id_to_data_dict
+
+        id_to_data_dict[eq_id] = data
+
+    return id_to_data_dict
 
 
 def get_eq(soup):
@@ -178,8 +201,18 @@ def scrap_from_p2(quake_url) -> object:
     return table_p2
 
 
-def main_scrapper_p1():
-    """ This function takes main page from the url and will scrap all the updated data and more details about each earthquake"""
+def extract_url_list(data_dict):
+    """ used to return a list of url for the pandas scapper p2
+    """
+
+    url_list = [data_dict[data][5] for data in data_dict.keys() if data is not None]
+
+    return url_list
+
+
+def main_scrapper_p1(args):
+    """ This function takes main page from the url and will scrap all the updated data
+    and more details about each earthquake"""
     url = "https://www.allquakes.com/earthquakes/today.html"
     soup = create_soup_from_link(url)
     quakes = get_eq(soup)
@@ -188,33 +221,44 @@ def main_scrapper_p1():
     quakes_show_more = get_eq(show_more_soup)
 
     table_eq_dirty = quakes + quakes_show_more
-    data_dict, details_dict = extract_data_from_quakes(table_eq_dirty)
-
-    url_list = [data_dict[data][5] for data in data_dict]
-
-    # printing all data
-    print('\nMain Page Table Information\n')
-    for q_id in data_dict:
-        print(f'{data_dict[q_id]}')
+    data_dict = extract_data_from_quakes(table_eq_dirty, args)
 
 
-    for idx, q_id in enumerate(details_dict):
-        print(f'\ndetails of earthquake num {idx}, id = {q_id}')
-        for raw in details_dict[q_id]:
-            print(raw)
-        print('\n\n')
+    url_list = extract_url_list(data_dict)
+
+    return url_list
+
+
+def scraping_with_pandas_p2(url):
+    """ this function is used to scrape the detailed pages of each earthquakes.
+    It returns a pandas dataframe of the available data"""
+    # testing with one URL
+    # url = "https://www.allquakes.com/earthquakes/quake-info/7220305/mag2quake-Nov-26-2022-43km-SE-of-Avalon-CA.html"
+    page = requests.get(url)
+    soup = BeautifulSoup(page.text, 'lxml')
+    dfs = pd.read_html(page.text)   # this creates dataframe directly from the table in h
+    # tml !! In out case it scraped 2 tables from the page
+    # df[0] is  this is the table that we need
+    table_detailed = dfs[0].transpose()
+    table_detailed.columns = table_detailed.iloc[0]
+    table_detailed = table_detailed.drop(table_detailed.index[0])
+    return table_detailed
+
+
+def scraping_with_pandas_all_earthquakes(url_list):
+    """ this returns a pandas dataframe of all the earthquakes detailed (every p2)"""
+    table_detailed_all_earthquakes = pd.DataFrame()
+    for link in url_list:
+        table_detailed = scraping_with_pandas_p2(link)
+        table_detailed_all_earthquakes = pd.concat([table_detailed_all_earthquakes, table_detailed])
+    return table_detailed_all_earthquakes
 
 
 def main():
-    """
-    function scrapes the earthquakes site.
-    Scrap the individual earthquake information and print the data as list.
-    """
-
-    f = open('countries_regions.json')
-    # list of all countries
-    countries = json.load(f)
-    f.close()
+    """ function scrapes the earthquakes site. Scrap the individual earthquake
+    information and print the data as list.
+     This uses the mainscrapper_p1 and the pandas scaper for page 2
+     """
 
     parser = argparse.ArgumentParser(add_help=HELP_MESSAGE)
     parser.add_argument('mysql_user', type=str)
@@ -222,7 +266,6 @@ def main():
 
     parser.add_argument('--date', nargs='+', action=DateAction, default=(datetime.now(),))
     parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction, default=(3.6, None))
-    parser.add_argument('--countries', nargs='+', type=str, action='store', choices=countries)
     parser.add_argument('--n_rows', type=int, action='store')
 
     try:
@@ -231,8 +274,11 @@ def main():
         print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {HELP_MESSAGE}')
         sys.exit()
 
-    main_scrapper_p1()
-
+    url_list = main_scrapper_p1(args)
+    url_main = 'https://www.volcanodiscovery.com/'
+    url_list = [url_main + link for link in url_list]
+    data = convert(scraping_with_pandas_all_earthquakes(url_list))
+    # TO-DO: pass to update db function
 
 
 if __name__ == '__main__':
