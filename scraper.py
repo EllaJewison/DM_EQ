@@ -176,7 +176,11 @@ def main():
     test = scraping_with_pandas_all_earthquakes(url_list)
     return test
 
-
+def saves_csv_of_data(df):
+    """ saves a CSV of the scrapped data to work with and not wait arounf during scrapping """
+    df.to_csv('earthquake.csv', header=True, index=False)
 
 if __name__ == '__main__':
-    main()
+    table_data = main()
+    path_Ella = "/Users/ellaistep/Documents/4_ITC/Data_mining_project/DM_EQ"
+    table_data.to_csv('earthquake.csv', header=True, index=False)
