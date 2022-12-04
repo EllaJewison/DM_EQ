@@ -226,7 +226,7 @@ def main_scrapper_p1(args):
 
     url_list = extract_url_list(data_dict)
 
-    return url_list
+    return data_dict.keys(), url_list
 
 
 def scraping_with_pandas_p2(url):
@@ -245,12 +245,13 @@ def scraping_with_pandas_p2(url):
     return table_detailed
 
 
-def scraping_with_pandas_all_earthquakes(url_list):
+def scraping_with_pandas_all_earthquakes(id_list, url_list):
     """ this returns a pandas dataframe of all the earthquakes detailed (every p2)"""
     table_detailed_all_earthquakes = pd.DataFrame()
     for link in url_list:
         table_detailed = scraping_with_pandas_p2(link)
         table_detailed_all_earthquakes = pd.concat([table_detailed_all_earthquakes, table_detailed])
+    table_detailed_all_earthquakes["eq_id"] = id_list
     return table_detailed_all_earthquakes
 
 
@@ -274,10 +275,10 @@ def main():
         print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {HELP_MESSAGE}')
         sys.exit()
 
-    url_list = main_scrapper_p1(args)
+    id_list, url_list = main_scrapper_p1(args)
     url_main = 'https://www.volcanodiscovery.com/'
     url_list = [url_main + link for link in url_list]
-    data = convert(scraping_with_pandas_all_earthquakes(url_list))
+    data = convert(scraping_with_pandas_all_earthquakes(id_list, url_list))
     # TO-DO: pass to update db function
 
 
