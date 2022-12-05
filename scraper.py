@@ -47,6 +47,10 @@ Examples:
 
 class DateAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
+        if not values:
+            setattr(namespace, self.dest, None)
+            return
+
         if len(values) > 2:
             raise ValueError(f'expected start and end date values. got {len(values)} args: {values}\n')
         # expected at most 2 values, got {len(values)}
@@ -69,6 +73,9 @@ class DateAction(argparse.Action):
 
 class MagnitudeAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
+        if not values:
+            setattr(namespace, self.dest, None)
+            return
         if len(values) > 2:
             raise ValueError(f'expected at most 2 values for magnitude range. got {len(values)} args: {values}\n')
         try:
@@ -158,7 +165,7 @@ def extract_data_from_quakes(quakes, args) -> dict:
         if args.magnitude:
             try:
                 magnitude = float(data[1])
-                if  magnitude < args.magnitude[0]:
+                if magnitude < args.magnitude[0]:
                     continue
                 if args.magnitude[1] and magnitude > args.magnitude[1]:
                     continue
@@ -265,8 +272,8 @@ def main():
     parser.add_argument('mysql_user', type=str)
     parser.add_argument('mysql_password', type=str)
 
-    parser.add_argument('--date', nargs='+', action=DateAction, default=(datetime.now(),))
-    parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction, default=(3.6, None))
+    parser.add_argument('--date', nargs='+', action=DateAction)
+    parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction)
     parser.add_argument('--n_rows', type=int, action='store')
 
     try:
@@ -279,6 +286,8 @@ def main():
     url_main = 'https://www.volcanodiscovery.com/'
     url_list = [url_main + link for link in url_list]
     data = convert(scraping_with_pandas_all_earthquakes(id_list, url_list))
+    data.to_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake_clean.csv')
+    print(len(data))
     # TO-DO: pass to update db function
 
 
