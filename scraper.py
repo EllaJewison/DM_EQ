@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 from tabulate import tabulate
+from uptade_database import update_database, get_connection
 
 from datetime import datetime
 from cleaning_converting import convert
@@ -286,9 +287,15 @@ def main():
     url_main = 'https://www.volcanodiscovery.com/'
     url_list = [url_main + link for link in url_list]
     data = convert(scraping_with_pandas_all_earthquakes(id_list, url_list))
-    data.to_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake_clean.csv')
+    # data = data.astype(object).where(pd.notnull(data), None)
+    data.fillna(0, inplace=True)
+    # data.to_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake_clean.csv')
     print(len(data))
     # TO-DO: pass to update db function
+
+    connection = get_connection('earthquake')
+    for _, row in data.iterrows():
+        update_database(row, connection)
 
 
 if __name__ == '__main__':
