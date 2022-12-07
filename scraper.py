@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 from tabulate import tabulate
+from uptade_database import update_database, get_connection
 
 from datetime import datetime
 from cleaning_converting import convert
@@ -47,6 +48,10 @@ Examples:
 
 class DateAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
+        if not values:
+            setattr(namespace, self.dest, None)
+            return
+
         if len(values) > 2:
             raise ValueError(f'expected start and end date values. got {len(values)} args: {values}\n')
         # expected at most 2 values, got {len(values)}
@@ -69,6 +74,9 @@ class DateAction(argparse.Action):
 
 class MagnitudeAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
+        if not values:
+            setattr(namespace, self.dest, None)
+            return
         if len(values) > 2:
             raise ValueError(f'expected at most 2 values for magnitude range. got {len(values)} args: {values}\n')
         try:
@@ -158,7 +166,7 @@ def extract_data_from_quakes(quakes, args) -> dict:
         if args.magnitude:
             try:
                 magnitude = float(data[1])
-                if  magnitude < args.magnitude[0]:
+                if magnitude < args.magnitude[0]:
                     continue
                 if args.magnitude[1] and magnitude > args.magnitude[1]:
                     continue
@@ -226,7 +234,7 @@ def main_scrapper_p1(args):
 
     url_list = extract_url_list(data_dict)
 
-    return url_list
+    return data_dict.keys(), url_list
 
 
 def scraping_with_pandas_p2(url):
@@ -245,12 +253,13 @@ def scraping_with_pandas_p2(url):
     return table_detailed
 
 
-def scraping_with_pandas_all_earthquakes(url_list):
+def scraping_with_pandas_all_earthquakes(id_list, url_list):
     """ this returns a pandas dataframe of all the earthquakes detailed (every p2)"""
     table_detailed_all_earthquakes = pd.DataFrame()
     for link in url_list:
         table_detailed = scraping_with_pandas_p2(link)
         table_detailed_all_earthquakes = pd.concat([table_detailed_all_earthquakes, table_detailed])
+    table_detailed_all_earthquakes["eq_id"] = id_list
     return table_detailed_all_earthquakes
 
 
@@ -264,8 +273,8 @@ def main():
     parser.add_argument('mysql_user', type=str)
     parser.add_argument('mysql_password', type=str)
 
-    parser.add_argument('--date', nargs='+', action=DateAction, default=(datetime.now(),))
-    parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction, default=(3.6, None))
+    parser.add_argument('--date', nargs='+', action=DateAction)
+    parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction)
     parser.add_argument('--n_rows', type=int, action='store')
 
     try:
@@ -274,11 +283,19 @@ def main():
         print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {HELP_MESSAGE}')
         sys.exit()
 
-    url_list = main_scrapper_p1(args)
+    id_list, url_list = main_scrapper_p1(args)
     url_main = 'https://www.volcanodiscovery.com/'
     url_list = [url_main + link for link in url_list]
-    data = convert(scraping_with_pandas_all_earthquakes(url_list))
+    data = convert(scraping_with_pandas_all_earthquakes(id_list, url_list))
+    # data = data.astype(object).where(pd.notnull(data), None)
+    data.fillna(0, inplace=True)
+    # data.to_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake_clean.csv')
+    print(len(data))
     # TO-DO: pass to update db function
+
+    connection = get_connection('earthquake')
+    for _, row in data.iterrows():
+        update_database(row, connection)
 
 
 if __name__ == '__main__':

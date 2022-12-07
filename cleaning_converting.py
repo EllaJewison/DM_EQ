@@ -89,9 +89,10 @@ def convert(df):
     df['Nearby towns and cities'] = df['Nearby towns and cities'].apply(extract_cities_info)
     return df
 
+
 if __name__ == '__main__':
     df = pd.read_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake.csv')
-    df = main(df)
+    df = convert(df)
 
 
 
