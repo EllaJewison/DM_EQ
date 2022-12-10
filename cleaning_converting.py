@@ -74,7 +74,7 @@ def convert(df):
                             'Light shaking': 1,
                             'Weak shaking': 2,
                             'Moderate shaking near epicenter': 3,
-                            'Moderate shaking ': 3,
+                            'Moderate shaking': 3,
                             'Strong shaking near epicenter': 4,
                             'Strong shaking': 4,
                             'Very strong shaking near epicenter': 5,
