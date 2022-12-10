@@ -3,3 +3,4 @@ beautifulsoup4==4.11.1
 argparse==1.4.0
 pandas==1.4.4
 lxml==4.9.1
+tqdm==4.64.1

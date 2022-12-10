@@ -8,7 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
-from tabulate import tabulate
+from tqdm import tqdm
 from uptade_database import update_database, get_connection
 
 from datetime import datetime
@@ -147,11 +147,12 @@ def get_details_url(quake_data_cells):
 
 
 def extract_data_from_quakes(quakes, args) -> dict:
-    """ this function reformats the scrapped earthquake information into a list  """
+    """
+    Exstracts all information
+    """
 
-    id_to_data_dict = {}
+    id_to_url = {}
     for idx, q in enumerate(quakes):
-        print(f'fetching quake num {idx + 1} data')
         eq_id = q.get('id')
         cells = q.find_all('td')
         url = get_details_url(cells)
@@ -160,8 +161,7 @@ def extract_data_from_quakes(quakes, args) -> dict:
             get_magnitude(cells),
             get_depth(cells),
             get_nearest_volcano(cells),
-            get_location(cells),
-            url,
+            get_location(cells)
         ]
         if args.magnitude:
             try:
@@ -182,12 +182,12 @@ def extract_data_from_quakes(quakes, args) -> dict:
             except ValueError:
                 pass
 
-        if args.n_rows and len(id_to_data_dict) >= args.n_rows:
-            return id_to_data_dict
+        if args.n_rows and len(id_to_url) >= args.n_rows:
+            return id_to_url
 
-        id_to_data_dict[eq_id] = data
+        id_to_url[eq_id] = url
 
-    return id_to_data_dict
+    return id_to_url
 
 
 def get_eq(soup):
@@ -209,13 +209,13 @@ def scrap_from_p2(quake_url) -> object:
     return table_p2
 
 
-def extract_url_list(data_dict):
-    """ used to return a list of url for the pandas scapper p2
-    """
-
-    url_list = [data_dict[data][5] for data in data_dict.keys() if data is not None]
-
-    return url_list
+# def extract_url_list(data_dict):
+#     """ used to return a list of url for the pandas scapper p2
+#     """
+#
+#     url_list = [data_dict[data][5] for data in data_dict.keys() if data is not None]
+#
+#     return url_list
 
 
 def main_scrapper_p1(args):
@@ -229,12 +229,11 @@ def main_scrapper_p1(args):
     quakes_show_more = get_eq(show_more_soup)
 
     table_eq_dirty = quakes + quakes_show_more
-    data_dict = extract_data_from_quakes(table_eq_dirty, args)
+    dict_id_url = extract_data_from_quakes(table_eq_dirty, args)
 
+    # url_list = extract_url_list(data_dict)
 
-    url_list = extract_url_list(data_dict)
-
-    return data_dict.keys(), url_list
+    return dict_id_url
 
 
 def scraping_with_pandas_p2(url):
@@ -256,7 +255,7 @@ def scraping_with_pandas_p2(url):
 def scraping_with_pandas_all_earthquakes(id_list, url_list):
     """ this returns a pandas dataframe of all the earthquakes detailed (every p2)"""
     table_detailed_all_earthquakes = pd.DataFrame()
-    for link in url_list:
+    for link in tqdm(url_list, total=len(url_list)):
         table_detailed = scraping_with_pandas_p2(link)
         table_detailed_all_earthquakes = pd.concat([table_detailed_all_earthquakes, table_detailed])
     table_detailed_all_earthquakes["eq_id"] = id_list
@@ -283,17 +282,13 @@ def main():
         print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {HELP_MESSAGE}')
         sys.exit()
 
-    id_list, url_list = main_scrapper_p1(args)
+    dict_id_url = main_scrapper_p1(args)
     url_main = 'https://www.volcanodiscovery.com/'
-    url_list = [url_main + link for link in url_list]
-    data = convert(scraping_with_pandas_all_earthquakes(id_list, url_list))
-    # data = data.astype(object).where(pd.notnull(data), None)
-    data.fillna(0, inplace=True)
-    # data.to_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake_clean.csv')
-    print(len(data))
-    # TO-DO: pass to update db function
+    url_list = [url_main + link for link in dict_id_url.values()]
+    data = convert(scraping_with_pandas_all_earthquakes(dict_id_url.keys(), url_list))
+    data = data.astype(object).where(pd.notnull(data), None)
 
-    connection = get_connection('earthquake')
+    connection = get_connection(args.mysql_user, args.mysql_password, 'earthquake')
     for _, row in data.iterrows():
         update_database(row, connection)
 
