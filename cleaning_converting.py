@@ -74,7 +74,15 @@ def convert(df):
                             'Light shaking': 1,
                             'Weak shaking': 2,
                             'Moderate shaking near epicenter': 3,
-                            'Strong shaking near epicenter': 4}
+                            'Moderate shaking ': 3,
+                            'Strong shaking near epicenter': 4,
+                            'Strong shaking': 4,
+                            'Very strong shaking near epicenter': 5,
+                            'Very strong shaking': 5,
+                            'Severe shaking near epicenter': 6,
+                            'Severe shaking': 6,
+                            'Violent shaking near epicenter': 7,
+                            'Violent shaking': 7}
     df["Shaking intensity"] = df["Shaking intensity"].apply(lambda x: intensity_str_to_nbr[x])
 
     # Felt
