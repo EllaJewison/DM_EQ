@@ -1,9 +1,6 @@
 import pymysql
-from datetime import datetime
-import re
 import pandas as pd
 import re
-import numpy as np
 
 
 def get_connection(user, password, database=None):

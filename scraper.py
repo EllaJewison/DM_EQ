@@ -195,29 +195,6 @@ def get_eq(soup):
     return soup.find_all('tr', {'class': re.compile(r'q\d')})
 
 
-def scrap_from_p2(quake_url) -> object:
-    """ This function takes the quake id and the url link of an earthquake, opens the "more page" and
-    retrieves the data  """
-    url = "https://www.volcanodiscovery.com/" + quake_url
-    my_soup = create_soup_from_link(url)
-    table_p2 = []
-    table_rows = my_soup.find_all('tr')
-    for tr in table_rows:
-        td = tr.find_all('td')
-        row = [i.text for i in td]
-        table_p2.append(row)
-    return table_p2
-
-
-# def extract_url_list(data_dict):
-#     """ used to return a list of url for the pandas scapper p2
-#     """
-#
-#     url_list = [data_dict[data][5] for data in data_dict.keys() if data is not None]
-#
-#     return url_list
-
-
 def main_scrapper_p1(args):
     """ This function takes main page from the url and will scrap all the updated data
     and more details about each earthquake"""
@@ -230,8 +207,6 @@ def main_scrapper_p1(args):
 
     table_eq_dirty = quakes + quakes_show_more
     dict_id_url = extract_data_from_quakes(table_eq_dirty, args)
-
-    # url_list = extract_url_list(data_dict)
 
     return dict_id_url
 
@@ -291,6 +266,8 @@ def main():
     connection = get_connection(args.mysql_user, args.mysql_password, 'earthquake')
     for _, row in data.iterrows():
         update_database(row, connection)
+
+    connection.close()
 
 
 if __name__ == '__main__':
