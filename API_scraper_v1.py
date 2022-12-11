@@ -74,13 +74,7 @@ def main():
 if __name__ == '__main__':
     dict_of_df = main()
     print('dict_of_df: ', dict_of_df)
-    connection = get_connection('root', 'password', 'earthquake')
-    update_fire(dict_of_df['Fire'], connection)
-    iceberg = dict_of_df['Fire'].astype(object).where(pd.notnull(dict_of_df['Fire']), None)
-    update_iceberg(iceberg, connection)
-    update_volcano(dict_of_df['Volcano'], connection)
 
-    print('Updated')
 
 
 
