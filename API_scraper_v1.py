@@ -1,8 +1,7 @@
 import requests
 import pandas as pd
-import re
 from dateutil import parser
-import json
+from uptade_database import update_fire, update_iceberg, update_volcano, get_connection
 
 API_URL = "https://eonet.gsfc.nasa.gov/api/v3/events"
 
@@ -66,6 +65,14 @@ if __name__ == '__main__':
     dict_of_df['Volcano'] = change_date(dict_of_df['Volcano'])
     dict_of_df['Iceberg'] = change_date(dict_of_df['Iceberg'])
     dict_of_df['Fire'] = change_date(dict_of_df['Fire'])
+
+    connection = get_connection('root', 'password', 'earthquake')
+    update_fire(dict_of_df['Fire'], connection)
+    iceberg = dict_of_df['Fire'].astype(object).where(pd.notnull(dict_of_df['Fire']), None)
+    update_iceberg(iceberg, connection)
+    update_volcano(dict_of_df['Volcano'], connection)
+
+    print('Updated')
 
 
 

@@ -113,9 +113,8 @@ def update_database(row, connection):
 
 
 def update_fire(df, connection):
-
-    for row in df.iterrows():
-        df_id = int(row['id'].rstrip('EONET_'))
+    for _, row in df.iterrows():
+        df_id = int(row['id'].lstrip('EONET_'))
         db_id = run_query(connection, f"select id from fire where eonet_id = {df_id}")
         if db_id:
             db_id = db_id['id']
@@ -127,6 +126,62 @@ def update_fire(df, connection):
                                 WHERE id = %s"""
             values = (row['title'], row['coordinates'][0], row['coordinates'][1], row['date'], db_id)
             run_update(connection, update_fire, values)
+
+        else:
+            create_fire = """INSERT INTO fire
+                        (eonet_id ,fire_name, latitude, longitude, date_time)
+                        VALUES
+                        (%s, %s, %s, %s, %s)"""
+            values = (df_id, row['title'], row['coordinates'][0], row['coordinates'][1], row['date'])
+            run_update(connection, create_fire, values)
+
+
+def update_volcano(df, connection):
+    for _, row in df.iterrows():
+        df_id = int(row['id'].lstrip('EONET_'))
+        db_id = run_query(connection, f"select id from volcano where eonet_id = {df_id}")
+        if db_id:
+            db_id = db_id['id']
+            update_volcano = """UPDATE volcano SET
+                                volcano_name = %s,
+                                latitude = %s,
+                                longitude = %s,
+                                date_time = %s
+                                WHERE id = %s"""
+            values = (row['title'], row['coordinates'][0], row['coordinates'][1], row['date'], db_id)
+            run_update(connection, update_volcano, values)
+
+        else:
+            create_volcano = """INSERT INTO volcano
+                        (eonet_id ,volcano_name, latitude, longitude, date_time)
+                        VALUES
+                        (%s, %s, %s, %s, %s)"""
+            values = (df_id, row['title'], row['coordinates'][0], row['coordinates'][1], row['date'])
+            run_update(connection, create_volcano, values)
+
+
+def update_iceberg(df, connection):
+    for _, row in df.iterrows():
+        df_id = int(row['id'].lstrip('EONET_'))
+        db_id = run_query(connection, f"select id from volcano where eonet_id = {df_id}")
+        if db_id:
+            db_id = db_id['id']
+            update_iceberg = """UPDATE iceberg SET
+                                iceberg_name = %s,
+                                magnitude_value = %s,
+                                magnitude_unit = %s,
+                                date_time = %s
+                                WHERE id = %s"""
+            values = (row['title'], row['magnitude_value'], row['magnitude_unit'], row['date'], db_id)
+            run_update(connection, update_iceberg, values)
+
+        else:
+            create_iceberg = """INSERT INTO iceberg
+                        (eonet_id ,iceberg_name, magnitude_value, magnitude_unit, date_time)
+                        VALUES
+                        (%s, %s, %s, %s, %s)"""
+            values = (df_id, row['title'], row['magnitude_value'], row['magnitude_unit'], row['date'])
+            run_update(connection, create_iceberg, values)
 
 
 if __name__ == '__main__':

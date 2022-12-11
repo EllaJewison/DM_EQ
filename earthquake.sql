@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS fire(id INT AUTO_INCREMENT PRIMARY KEY ,
 
 CREATE TABLE IF NOT EXISTS iceberg(id INT AUTO_INCREMENT PRIMARY KEY,
                                                     eonet_id INT,
+                                                    iceberg_name VARCHAR(255),
                                                     magnitude_value FLOAT,
                                                     magnitude_unit VARCHAR(255),
                                                     date_time DATE
