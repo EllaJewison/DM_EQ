@@ -21,7 +21,10 @@ number that is its data is now collected. Once all the data is collected, print 
 Clone the repo on your local computer and install the needed requirements from requirements.txt
 
 ### Create the database in your computer
-Run the script name.py and make sure to change the username and password on the connection function. 
+To create the database on your computer run this line on you command line :
+
+mysql -u username -p < path_to_cloned_folder
+ 
 
 ### Scapping :
 Run the scraper.py file from the command line interface from this website "https://www.allquakes.com/earthquakes/today.html". 
