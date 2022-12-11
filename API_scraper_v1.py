@@ -19,7 +19,7 @@ def get_events_from_api(API_URL):
 
 
 def re_organise_df(df):
-    """ returns a df with jsut the important columns : title, id and geometr"""
+    """ returns a df with just the important columns : title, id and geometr"""
     df_new = df[['title', 'id', 'geometry']]
     return df_new
 
@@ -40,13 +40,14 @@ def get_info_from_geometry(df):
 
 def find_event(df):
     """ Creates a dictionary of dataframe for each event in the dataset"""
-    types_events2 = ['Drought','Dust and Haze','Earthquake', 'Flood', 'Iceberg','Landslide', 'Manmade', 'Sea',
+    types_events2 = ['Drought', 'Dust and Haze', 'Earthquake', 'Flood', 'Iceberg', 'Landslide', 'Manmade', 'Sea',
     'Severe Storms', 'Snow', 'Temperature', 'Volcano', 'Water Color', 'Fire']
 
     dico = {event: df[df.title.str.contains('.*'+event+'.*', case=False, regex=True)] for event in types_events2}
     return dico
 
 def change_date(df):
+    """ Change date to a datatiem format"""
     df['date'] = df['date'].apply(lambda x: parser.parse(x))
     return df
 
@@ -55,7 +56,8 @@ def change_date(df):
 
 
 
-if __name__ == '__main__':
+def main():
+    """ runs the scraper for the API"""
     df = get_events_from_api(API_URL)
     data = re_organise_df(df)
     data2 = get_info_from_geometry(data)
@@ -66,6 +68,12 @@ if __name__ == '__main__':
     dict_of_df['Iceberg'] = change_date(dict_of_df['Iceberg'])
     dict_of_df['Fire'] = change_date(dict_of_df['Fire'])
 
+    return dict_of_df
+
+
+if __name__ == '__main__':
+    dict_of_df = main()
+    print('dict_of_df: ', dict_of_df)
     connection = get_connection('root', 'password', 'earthquake')
     update_fire(dict_of_df['Fire'], connection)
     iceberg = dict_of_df['Fire'].astype(object).where(pd.notnull(dict_of_df['Fire']), None)

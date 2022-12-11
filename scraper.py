@@ -13,6 +13,7 @@ from uptade_database import update_database, get_connection
 
 from datetime import datetime
 from cleaning_converting import convert
+import API_scraper_v1
 
 HELP_MESSAGE = """This is a CLI to scrape specific information about earthquakes.
 the program will scrape all the relevant information (by date, magnitude) and will update the information
@@ -266,6 +267,11 @@ def main():
     connection = get_connection(args.mysql_user, args.mysql_password, 'earthquake')
     for _, row in data.iterrows():
         update_database(row, connection)
+
+    ### scrapping with the API
+
+    dict_of_df = API_scraper_v1.main()
+    print('API scrapping done')
 
     connection.close()
 
