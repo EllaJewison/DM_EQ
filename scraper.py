@@ -268,7 +268,7 @@ def main():
     for _, row in data.iterrows():
         uptade_database.update_database(row, connection)
 
-    ### scrapping with the API
+    ### scrapping with the API.
 
     dict_of_df = API_scraper_v1.main()
     print('API scrapping done')
