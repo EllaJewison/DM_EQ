@@ -1,5 +1,4 @@
 from datetime import datetime
-from tabulate import tabulate
 import numpy as np
 import re
 import pandas as pd
@@ -40,9 +39,8 @@ def extract_cities_info(city_string):
     return info
 
 
-# ============================================================================
 
-def main(df):
+def convert(df):
     columns_to_drop = ["Local time at epicenter"]
     df.drop(columns_to_drop, axis=1)
 
@@ -75,7 +73,15 @@ def main(df):
                             'Light shaking': 1,
                             'Weak shaking': 2,
                             'Moderate shaking near epicenter': 3,
-                            'Strong shaking near epicenter': 4}
+                            'Moderate shaking': 3,
+                            'Strong shaking near epicenter': 4,
+                            'Strong shaking': 4,
+                            'Very strong shaking near epicenter': 5,
+                            'Very strong shaking': 5,
+                            'Severe shaking near epicenter': 6,
+                            'Severe shaking': 6,
+                            'Violent shaking near epicenter': 7,
+                            'Violent shaking': 7}
     df["Shaking intensity"] = df["Shaking intensity"].apply(lambda x: intensity_str_to_nbr[x])
 
     # Felt
@@ -90,10 +96,11 @@ def main(df):
     df['Nearby towns and cities'] = df['Nearby towns and cities'].apply(extract_cities_info)
     return df
 
+
+
 if __name__ == '__main__':
     df = pd.read_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake.csv')
-    df = main(df)
-
+    df = convert(df)
 
 
     # tests
