@@ -20,10 +20,13 @@ number that is its data is now collected. Once all the data is collected, print 
 ### Clone
 Clone the repo on your local computer and install the needed requirements from requirements.txt
 
-### Create the database in your computer
+### Create the database in your computer :
 To create the database on your computer run this line on you command line :
 
-mysql -u username -p < path_to_cloned_folder
+mysql -u username -p < path_to_cloned_folder/earthquake.sql
+
+You can see an illustration of the organisation of the database in the ERD.pdf file.
+
  
 
 ### Scapping :
@@ -101,9 +104,6 @@ p.s. make sur you install the requirements.txt
 
 enjoy
 
-
-## What is Next
-The next step is to create a CLI for the user to get specific earthquake information, and store all the collected data in a data frame for better access.
 
 # URL links in the table EQ
 
