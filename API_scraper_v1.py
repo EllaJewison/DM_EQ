@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import re
+from dateutil import parser
 import json
 
 API_URL = "https://eonet.gsfc.nasa.gov/api/v3/events"
@@ -45,20 +46,26 @@ def find_event(df):
     dico = {event: df[df.title.str.contains('.*'+event+'.*', case=False, regex=True)] for event in types_events2}
     return dico
 
-# #
-# def saves_stuffer(self):
-#     # df.to_json('api.json', )
-#     # df.to_csv('api.csv', index=False)
-#     # df = pd.read_csv('api.csv')
-#
+def change_date(df):
+    df['date'] = df['date'].apply(lambda x: parser.parse(x))
+    return df
+
+# ds = '2012-03-01T10:00:00Z' # or any date sting of differing formats.
+# date = parser.parse(ds)
+
+
 
 if __name__ == '__main__':
     df = get_events_from_api(API_URL)
     data = re_organise_df(df)
     data2 = get_info_from_geometry(data)
-    dico = find_event(data2)
-    print(data2)
-    print(data)
-    print(dico)
+    dict_of_df = find_event(data2)
+
+    # converting time string to datetime object, raise an error but its still working
+    dict_of_df['Volcano'] = change_date(dict_of_df['Volcano'])
+    dict_of_df['Iceberg'] = change_date(dict_of_df['Iceberg'])
+    dict_of_df['Fire'] = change_date(dict_of_df['Fire'])
+
+
 
 
