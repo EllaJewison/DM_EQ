@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from dateutil import parser
+from uptade_database import update_fire, update_iceberg, update_volcano, get_connection
 
 API_URL = "https://eonet.gsfc.nasa.gov/api/v3/events"
 
@@ -50,6 +51,9 @@ def change_date(df):
     df['date'] = df['date'].apply(lambda x: parser.parse(x))
     return df
 
+# ds = '2012-03-01T10:00:00Z' # or any date sting of differing formats.
+# date = parser.parse(ds)
+
 
 
 def main():
@@ -59,7 +63,7 @@ def main():
     data2 = get_info_from_geometry(data)
     dict_of_df = find_event(data2)
 
-    # converting time string to datetime object, raise an error but it s still working
+    # converting time string to datetime object, raise an error but its still working
     dict_of_df['Volcano'] = change_date(dict_of_df['Volcano'])
     dict_of_df['Iceberg'] = change_date(dict_of_df['Iceberg'])
     dict_of_df['Fire'] = change_date(dict_of_df['Fire'])
@@ -70,6 +74,7 @@ def main():
 if __name__ == '__main__':
     dict_of_df = main()
     print('dict_of_df: ', dict_of_df)
+
 
 
 

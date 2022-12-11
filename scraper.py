@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from datetime import datetime
 from tqdm import tqdm
-from uptade_database import update_database, get_connection
+import uptade_database
 
 from datetime import datetime
 from cleaning_converting import convert
@@ -219,7 +219,7 @@ def scraping_with_pandas_p2(url):
     # url = "https://www.allquakes.com/earthquakes/quake-info/7220305/mag2quake-Nov-26-2022-43km-SE-of-Avalon-CA.html"
     page = requests.get(url)
     soup = BeautifulSoup(page.text, 'lxml')
-    dfs = pd.read_html(page.text)   # this creates dataframe directly from the table in h
+    dfs = pd.read_html(page.text)  # this creates dataframe directly from the table in h
     # tml !! In out case it scraped 2 tables from the page
     # df[0] is  this is the table that we need
     table_detailed = dfs[0].transpose()
@@ -264,15 +264,21 @@ def main():
     data = convert(scraping_with_pandas_all_earthquakes(dict_id_url.keys(), url_list))
     data = data.astype(object).where(pd.notnull(data), None)
 
-    connection = get_connection(args.mysql_user, args.mysql_password, 'earthquake')
+    connection = uptade_database.get_connection(args.mysql_user, args.mysql_password, 'earthquake')
     for _, row in data.iterrows():
-        update_database(row, connection)
+        uptade_database.update_database(row, connection)
 
     ### scrapping with the API
 
     dict_of_df = API_scraper_v1.main()
     print('API scrapping done')
 
+    uptade_database.update_fire(dict_of_df['Fire'], connection)
+    iceberg = dict_of_df['Fire'].astype(object).where(pd.notnull(dict_of_df['Fire']), None)
+    uptade_database.update_iceberg(iceberg, connection)
+    uptade_database.update_volcano(dict_of_df['Volcano'], connection)
+
+    print('Updating database done')
     connection.close()
 
 

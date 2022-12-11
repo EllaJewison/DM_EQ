@@ -39,7 +39,6 @@ def extract_cities_info(city_string):
     return info
 
 
-# ============================================================================
 
 def convert(df):
     columns_to_drop = ["Local time at epicenter"]
@@ -101,7 +100,6 @@ def convert(df):
 if __name__ == '__main__':
     df = pd.read_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake.csv')
     df = convert(df)
-
 
 
     # tests
