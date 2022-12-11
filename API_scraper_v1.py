@@ -26,8 +26,8 @@ def re_organise_df(df):
 
 def get_info_from_geometry(df):
     # s_mag_value = df['geometry'][0].apply(lambda x: x[0]["magnitudeValue"])
-    s_mag_unit = df['geometry'].apply(lambda x: x[0]['magnitudeValue'])
-    s_mag_value = df['geometry'].apply(lambda x: x[0]['magnitudeUnit'])
+    s_mag_value = df['geometry'].apply(lambda x: x[0]['magnitudeValue'])
+    s_mag_unit = df['geometry'].apply(lambda x: x[0]['magnitudeUnit'])
     s_date = df['geometry'].apply(lambda x: x[0]['date'])
     s_type = df['geometry'].apply(lambda x: x[0]['type'])
     s_coord = df['geometry'].apply(lambda x: x[0]['coordinates'])
@@ -50,10 +50,11 @@ def change_date(df):
     df['date'] = df['date'].apply(lambda x: parser.parse(x))
     return df
 
-# ds = '2012-03-01T10:00:00Z' # or any date sting of differing formats.
-# date = parser.parse(ds)
+def change_coords(df):
 
-
+    df_lat_long = pd.DataFrame(df["coordinates"].to_list(), columns=['latitude', 'longitude'])
+    df_new = df.join(df_lat_long)
+    return df_new
 
 if __name__ == '__main__':
     df = get_events_from_api(API_URL)
@@ -61,10 +62,15 @@ if __name__ == '__main__':
     data2 = get_info_from_geometry(data)
     dict_of_df = find_event(data2)
 
-    # converting time string to datetime object, raise an error but its still working
+    # converting time string to datetime object, raise an error but it s still working
     dict_of_df['Volcano'] = change_date(dict_of_df['Volcano'])
     dict_of_df['Iceberg'] = change_date(dict_of_df['Iceberg'])
     dict_of_df['Fire'] = change_date(dict_of_df['Fire'])
+
+    # converting coordinates  to two columns longitude and latitude :
+    dict_of_df['Fire'] = change_coords(dict_of_df['Fire'])
+    dict_of_df['Volcano'] = change_coords(dict_of_df['Volcano'])
+    dict_of_df['Iceberg'] = change_coords(dict_of_df['Iceberg'])
 
 
 
