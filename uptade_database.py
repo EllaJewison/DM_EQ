@@ -112,6 +112,23 @@ def update_database(row, connection):
                 run_update(connection, create_eq_city, (db_id, city_id, city_distance))
 
 
+def update_fire(df, connection):
+
+    for row in df.iterrows():
+        df_id = int(row['id'].rstrip('EONET_'))
+        db_id = run_query(connection, f"select id from fire where eonet_id = {df_id}")
+        if db_id:
+            db_id = db_id['id']
+            update_fire = """UPDATE fire SET
+                                fire_name = %s,
+                                latitude = %s,
+                                longitude = %s,
+                                date_time = %s
+                                WHERE id = %s"""
+            values = (row['title'], row['coordinates'][0], row['coordinates'][1], row['date'], db_id)
+            run_update(connection, update_fire, values)
+
+
 if __name__ == '__main__':
     table_data = pd.read_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake_clean.csv')
     connection = get_connection('earthquake')

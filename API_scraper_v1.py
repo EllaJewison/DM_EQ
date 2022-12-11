@@ -24,6 +24,7 @@ def re_organise_df(df):
     df_new = df[['title', 'id', 'geometry']]
     return df_new
 
+
 def get_info_from_geometry(df):
     # s_mag_value = df['geometry'][0].apply(lambda x: x[0]["magnitudeValue"])
     s_mag_unit = df['geometry'].apply(lambda x: x[0]['magnitudeValue'])
@@ -46,13 +47,13 @@ def find_event(df):
     dico = {event: df[df.title.str.contains('.*'+event+'.*', case=False, regex=True)] for event in types_events2}
     return dico
 
+
 def change_date(df):
     df['date'] = df['date'].apply(lambda x: parser.parse(x))
     return df
 
 # ds = '2012-03-01T10:00:00Z' # or any date sting of differing formats.
 # date = parser.parse(ds)
-
 
 
 if __name__ == '__main__':
@@ -66,6 +67,6 @@ if __name__ == '__main__':
     dict_of_df['Iceberg'] = change_date(dict_of_df['Iceberg'])
     dict_of_df['Fire'] = change_date(dict_of_df['Fire'])
 
-
+    print(len(dict_of_df))
 
 

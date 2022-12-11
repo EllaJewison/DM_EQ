@@ -32,3 +32,25 @@ CREATE TABLE IF NOT EXISTS cities( id INT AUTO_INCREMENT PRIMARY KEY ,
                                                      );
                                                      
 
+CREATE TABLE IF NOT EXISTS fire(id INT AUTO_INCREMENT PRIMARY KEY ,
+                                                    eonet_id INT,
+                                                    fire_name VARCHAR(255),
+                                                    latitude FLOAT,
+                                                    longitude FLOAT,
+                                                    date_time DATE
+                                                    );
+
+CREATE TABLE IF NOT EXISTS iceberg(id INT AUTO_INCREMENT PRIMARY KEY,
+                                                    eonet_id INT,
+                                                    magnitude_value FLOAT,
+                                                    magnitude_unit VARCHAR(255),
+                                                    date_time DATE
+                                                    );
+
+CREATE TABLE IF NOT EXISTS volcano( id INT AUTO_INCREMENT PRIMARY KEY ,
+                                                    eonet_id INT,
+                                                    volcano_name VARCHAR(255),
+                                                    latitude FLOAT,
+                                                    longitude FLOAT,
+                                                    date_time DATE
+                                                    );

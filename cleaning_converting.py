@@ -97,7 +97,6 @@ def convert(df):
     return df
 
 
-
 if __name__ == '__main__':
     df = pd.read_csv('/home/emuna/Documents/Itc/DM_EQ/earthquake.csv')
     df = convert(df)
