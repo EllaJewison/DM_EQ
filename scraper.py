@@ -5,16 +5,15 @@ import argparse
 import re
 import sys
 import requests
-from bs4 import BeautifulSoup
 import pandas as pd
-from datetime import datetime
 from tqdm import tqdm
-import uptade_database
-
-from datetime import datetime
+from bs4 import BeautifulSoup
 from cleaning_converting import convert
-import API_scraper_v1
+from datetime import datetime,date, timedelta
+from uptade_database import update_database, get_connection
 
+
+LINK = 'https://www.allquakes.com/earthquakes/archive/'
 HELP_MESSAGE = """This is a CLI to scrape specific information about earthquakes.
 the program will scrape all the relevant information (by date, magnitude) and will update the information
 in the database.
@@ -72,7 +71,6 @@ class DateAction(argparse.Action):
             raise ValueError(f'Start date {start_date} must be before end date {end_date}\n')
         setattr(namespace, self.dest, (start_date, end_date))
 
-
 class MagnitudeAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         if not values:
@@ -89,6 +87,7 @@ class MagnitudeAction(argparse.Action):
             raise ValueError(f'{from_magnitude} must be less than {to_magnitude}')
         if from_magnitude < 0 or (to_magnitude and to_magnitude < 0):
             raise ValueError(f'magnitude must be positive, got {from_magnitude}, {to_magnitude}')
+
 
 
 def create_soup_from_link(link):
@@ -147,6 +146,32 @@ def get_details_url(quake_data_cells):
     return quake_data_cells[4].find("a")["href"]
 
 
+def get_all_dates(args):
+    """the function gets the input dates from client and returns a list of all links of dates in range"""
+    try:
+        if len(args.date)==2:
+            today = datetime.now()
+            start_date = args.date[0]
+            end_date = args.date[1]  # perhaps date.now()
+            delta = end_date - start_date  # returns timedelta
+            list_of_dates = []
+            if today > args.date[0] and today > args.date[1]:  # making sure date the second date is the passed
+                for i in range(delta.days + 1):
+                    day = start_date + timedelta(days=i)
+                    print(day)
+                    list_of_dates.append(day)
+                return [LINK + d.strftime("%Y-%b-%d").lower() + '.html' for d in list_of_dates]
+        elif len(args.date)==1:
+            return [LINK +args.date[0].strftime("%Y-%b-%d").lower() + '.html']
+        elif len(args.date)==0:
+            return ["https://www.allquakes.com/earthquakes/today.html"]
+    except ValueError:
+        raise ValueError(f'The date format is invalid')
+
+
+
+
+
 def extract_data_from_quakes(quakes, args) -> dict:
     """
     Exstracts all information
@@ -174,12 +199,14 @@ def extract_data_from_quakes(quakes, args) -> dict:
             except ValueError:
                 pass
         if args.date:
+
             try:
                 date = datetime.strptime(re.sub(' GMT.*', '', data[0]), '%b %d, %Y %H:%M')
-                if date < args.date[0]:
+                if date < args.date[0]:  # making sure date is in the passed
                     continue
-                if args.date[1] and date > args.date[1]:
+                if args.date[1] and date > args.date[1]:  # making sure date the second date is the passed
                     continue
+                    list_dates = get_all_dates(args)  # if dates are okey:
             except ValueError:
                 pass
 
@@ -196,18 +223,38 @@ def get_eq(soup):
     return soup.find_all('tr', {'class': re.compile(r'q\d')})
 
 
+# def get_links_from_client_request(args):
+#     """the function will check if clien askeed for specific dates and return deeded links to scrape"""
+#     default_url = "https://www.allquakes.com/earthquakes/today.html"
+#     if args.date:
+#         try:
+#             date = datetime.now().strftime('%b %d, %Y %H:%M')
+#             if args.date[1] and date > args.date[1]:  # making sure date the second date is the passed
+#                 continue
+#             if date < args.date[0]:  # making sure date is in the passet
+#                 continue
+#                 list_dates = get_all_dates(args)  # if dates are okey:
+#         except ValueError:
+#             pass
+#     else:
+#         return
+
+
 def main_scrapper_p1(args):
     """ This function takes main page from the url and will scrap all the updated data
     and more details about each earthquake"""
-    url = "https://www.allquakes.com/earthquakes/today.html"
-    soup = create_soup_from_link(url)
-    quakes = get_eq(soup)
+    #
 
-    show_more_soup = extract_show_more_soup(soup)
-    quakes_show_more = get_eq(show_more_soup)
+    url_by_dates = get_all_dates(args)
+    dict_id_url = {}
+    for url in url_by_dates:
+        soup = create_soup_from_link(url)
+        quakes = get_eq(soup)
+        show_more_soup = extract_show_more_soup(soup)
+        quakes_show_more = get_eq(show_more_soup)
+        table_eq_dirty = quakes + quakes_show_more
 
-    table_eq_dirty = quakes + quakes_show_more
-    dict_id_url = extract_data_from_quakes(table_eq_dirty, args)
+        dict_id_url.update(extract_data_from_quakes(table_eq_dirty, args))
 
     return dict_id_url
 
@@ -264,21 +311,10 @@ def main():
     data = convert(scraping_with_pandas_all_earthquakes(dict_id_url.keys(), url_list))
     data = data.astype(object).where(pd.notnull(data), None)
 
-    connection = uptade_database.get_connection(args.mysql_user, args.mysql_password, 'earthquake')
+    connection = get_connection(args.mysql_user, args.mysql_password, 'earthquake')
     for _, row in data.iterrows():
-        uptade_database.update_database(row, connection)
+        update_database(row, connection)
 
-    ### scrapping with the API
-
-    dict_of_df = API_scraper_v1.main()
-    print('API scrapping done')
-
-    uptade_database.update_fire(dict_of_df['Fire'], connection)
-    iceberg = dict_of_df['Fire'].astype(object).where(pd.notnull(dict_of_df['Fire']), None)
-    uptade_database.update_iceberg(iceberg, connection)
-    uptade_database.update_volcano(dict_of_df['Volcano'], connection)
-
-    print('Updating database done')
     connection.close()
 
 
