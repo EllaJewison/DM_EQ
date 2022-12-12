@@ -56,11 +56,12 @@ class DateAction(argparse.Action):
         if len(values) > 2:
             raise ValueError(f'expected start and end date values. got {len(values)} args: {values}\n')
         # expected at most 2 values, got {len(values)}
-        end_date = datetime.now()
         try:
             start_date = datetime.strptime(values[0], '%d/%m/%Y')
         except ValueError as e:
             raise ValueError(f'Could not convert {values[0]} to date.\n {e}')
+
+        end_date = start_date
 
         if len(values) == 2:
             try:
@@ -71,6 +72,7 @@ class DateAction(argparse.Action):
         if end_date < start_date:
             raise ValueError(f'Start date {start_date} must be before end date {end_date}\n')
         setattr(namespace, self.dest, (start_date, end_date))
+
 
 class MagnitudeAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -88,7 +90,6 @@ class MagnitudeAction(argparse.Action):
             raise ValueError(f'{from_magnitude} must be less than {to_magnitude}')
         if from_magnitude < 0 or (to_magnitude and to_magnitude < 0):
             raise ValueError(f'magnitude must be positive, got {from_magnitude}, {to_magnitude}')
-
 
 
 def create_soup_from_link(link):
