@@ -313,7 +313,17 @@ def main():
 
     connection = get_connection(args.mysql_user, args.mysql_password, 'earthquake')
     for _, row in data.iterrows():
-        update_database(row, connection)
+        uptade_database.update_database(row, connection)
+
+    ### scrapping with the API.
+
+    dict_of_df = API_scraper_v1.main()
+    print('API scrapping done')
+
+    uptade_database.update_fire(dict_of_df['Fire'], connection)
+    iceberg = dict_of_df['Fire'].astype(object).where(pd.notnull(dict_of_df['Fire']), None)
+    uptade_database.update_iceberg(iceberg, connection)
+    uptade_database.update_volcano(dict_of_df['Volcano'], connection)
 
     connection.close()
 
