@@ -10,7 +10,8 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 from cleaning_converting import convert
 from datetime import datetime,date, timedelta
-from uptade_database import update_database, get_connection
+import uptade_database
+import API_scraper_v1
 
 
 LINK = 'https://www.allquakes.com/earthquakes/archive/'
@@ -311,7 +312,7 @@ def main():
     data = convert(scraping_with_pandas_all_earthquakes(dict_id_url.keys(), url_list))
     data = data.astype(object).where(pd.notnull(data), None)
 
-    connection = get_connection(args.mysql_user, args.mysql_password, 'earthquake')
+    connection = uptade_database.get_connection(args.mysql_user, args.mysql_password, 'earthquake')
     for _, row in data.iterrows():
         uptade_database.update_database(row, connection)
 
