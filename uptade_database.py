@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_connection(user, password, database=None):
-    """returns a connection to the database using the given user and password"""
+    """This function establishes a connection to the database using the given user and password"""
     connection = pymysql.connect(host='localhost',
                                  user=user,
                                  password=password,
@@ -21,6 +21,8 @@ def get_connection(user, password, database=None):
 
 
 def run_query(connection, query, query_parameters=None):
+    """ this is the user function used to execute a query in the sql database
+    """
     with connection.cursor() as cursor:
         cursor.execute(query, query_parameters)
         result = cursor.fetchone()
@@ -28,6 +30,9 @@ def run_query(connection, query, query_parameters=None):
 
 
 def run_update(connection, query, query_parameters=None):
+    """ this function is called to ???
+    """
+
     with connection.cursor() as cursor:
         result = cursor.execute(query, query_parameters)
         connection.commit()
@@ -35,6 +40,9 @@ def run_update(connection, query, query_parameters=None):
 
 
 def update_database(row, connection):
+    """ this function is used to update the database with a new earthquake.
+     It checks weather the earthquake ID is already in the database, if not, the databse is updated  """
+
     df_id = int(re.findall(r'\d+', row['eq_id'])[0])
     status = int(row['Status'])
     db_id = run_query(connection, f"select id from earthquakes where link_id = {df_id}")
@@ -113,6 +121,9 @@ def update_database(row, connection):
 
 
 def update_fire(df, connection):
+    """ This function updates the fire table with the data scraped from the API. Before adding the instance to the table
+    it checks if the id is already in the fire table. """
+
     for _, row in df.iterrows():
         df_id = int(row['id'].lstrip('EONET_'))
         db_id = run_query(connection, f"select id from fire where eonet_id = {df_id}")
@@ -139,6 +150,8 @@ def update_fire(df, connection):
 
 
 def update_volcano(df, connection):
+    """ This function updates the volcano table with the data scraped from the API. Before adding the instance to the table
+    it checks if the id is already in the volcano table. """
     for _, row in df.iterrows():
         df_id = int(row['id'].lstrip('EONET_'))
         db_id = run_query(connection, f"select id from volcano where eonet_id = {df_id}")
@@ -165,6 +178,9 @@ def update_volcano(df, connection):
 
 
 def update_iceberg(df, connection):
+    """     This function updates the iceberg table with the data scraped from the API. Before adding the instance to the table
+    it checks if the id is already in the iceberg table. """
+
     for _, row in df.iterrows():
         df_id = int(row['id'].lstrip('EONET_'))
         db_id = run_query(connection, f"select id from volcano where eonet_id = {df_id}")

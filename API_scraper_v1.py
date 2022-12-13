@@ -13,9 +13,8 @@ API_URL = "https://eonet.gsfc.nasa.gov/api/v3/events"
 
 
 def get_events_from_api(API_URL):
-
     """ Calls a get requests form the URL of the API that will provide a json file.
-    Then return a dataframe from the events stores in the json file."""
+    This function returns a dataframe with the natural events stored in the json file."""
 
     a = requests.get(API_URL)
     logger.info('Got the json file from the API')
@@ -25,13 +24,14 @@ def get_events_from_api(API_URL):
 
 
 def re_organise_df(df):
-    """ returns a df with just the important columns : title, id and geometr"""
+    """ This function returns a dataframe with just the important columns : title, id and geometry """
     df_new = df[['title', 'id', 'geometry']]
     return df_new
 
 
 def get_info_from_geometry(df):
-    # s_mag_value = df['geometry'][0].apply(lambda x: x[0]["magnitudeValue"])
+    """ This function returns a dataframe with the information stored in the given geometry columns.
+    It creates 5 new columns to store the main informations of the natural event """
     s_mag_value = df['geometry'].apply(lambda x: x[0]['magnitudeValue'])
     s_mag_unit = df['geometry'].apply(lambda x: x[0]['magnitudeUnit'])
     s_date = df['geometry'].apply(lambda x: x[0]['date'])
@@ -53,17 +53,13 @@ def find_event(df):
     return dico
 
 def change_date(df):
-    """ Change date to a datatiem format"""
+    """ This function changes the date format from string to a proper datatime format"""
     df['date'] = df['date'].apply(lambda x: parser.parse(x))
     return df
 
-# ds = '2012-03-01T10:00:00Z' # or any date sting of differing formats.
-# date = parser.parse(ds)
-
-
-
 def main():
-    """ runs the scraper for the API"""
+    """ This is the main function that runs the scraper for the API. It gets the event from the API and returns the
+    dictionary of natural events """
     df = get_events_from_api(API_URL)
     data = re_organise_df(df)
     data2 = get_info_from_geometry(data)

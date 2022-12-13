@@ -16,6 +16,7 @@ import logging
 
 MAIN_URL = 'https://www.volcanodiscovery.com/'
 LINK = 'https://www.allquakes.com/earthquakes/archive/'
+
 HELP_MESSAGE = """This is a CLI to scrape specific information about earthquakes.
 the program will scrape all the relevant information (by date, magnitude) and will update the information
 in the database.
@@ -55,6 +56,8 @@ logger = logging.getLogger(__name__)
 
 
 class DateAction(argparse.Action):
+    """ This class is used to select the dates of wanted earthquakes to scrape. It is used from the command line or in
+    configuration in the IDE"""
     def __call__(self, parser, namespace, values, option_string=None):
         if not values:
             setattr(namespace, self.dest, None)
@@ -82,6 +85,8 @@ class DateAction(argparse.Action):
 
 
 class MagnitudeAction(argparse.Action):
+    """ This class is used to select the wanted magnitude of earthquakes to scrop. It is used the command line or in
+    configuration from the IDE"""
     def __call__(self, parser, namespace, values, option_string=None):
         if not values:
             setattr(namespace, self.dest, None)
@@ -100,15 +105,17 @@ class MagnitudeAction(argparse.Action):
 
 
 def create_soup_from_link(link):
-    """ Finds all the html information from the url link passed in the input  """
+    """ Finds all the html information from the url link passed in the input. Returns a beautifull soup object
+     containing the page content. """
     page = requests.get(link)  # asking permission from the website to fetch data, If response is 200 it's ok
     my_soup = BeautifulSoup(page.content, "html.parser")  # creating a bs object that takes page.content as an input
     return my_soup
 
 
 def get_show_more_url(my_soup) -> str:
-    """the function receives the html from the website and returns the url to access the "show more"
-    button and get the complete list of earthquakes"""
+    """ This function receives the html from the website and returns the url to access the "show more"
+    button and get the complete list of earthquakes. TO sum up it allows access to the page with all the detailed
+    information about each earthquake """
     script = my_soup.find('div', {'class': 'table-wrap'}).script.text
     url_regex = re.search(r'var url="(.*)"\+"(.*)";', script)
     return url_regex.group(1) + url_regex.group(2)
@@ -116,7 +123,7 @@ def get_show_more_url(my_soup) -> str:
 
 def extract_show_more_soup(my_soup):
     """ Finds all the html information from the url link passed in the input (here it will return
-     all additional rows from the show more button)"""
+     all additional rows from the show more button). It returns a beautifull soup object"""
     url = get_show_more_url(my_soup)
     new_soup = create_soup_from_link(url)
     return new_soup
@@ -156,7 +163,8 @@ def get_details_url(quake_data_cells):
 
 
 def get_all_dates(args):
-    """the function gets the input dates from client and returns a list of all links of dates in range"""
+    """ This function gets the input dates from the client and returns a list of all links matching the date range
+     queried by the client."""
     try:
         if not args.date:
             logger.info('scrape earthquakes from the last 48 hours')
@@ -183,7 +191,9 @@ def get_all_dates(args):
 
 def extract_data_from_quakes(quakes, args) -> dict:
     """
-    Exstracts all information
+    This function reads through the HTML contend of quakes and returns a dictionary with the earthquake id as a key
+    and the corresponding url as a value. This url is the link to the second page, with the complete detail about the
+    earthquakes.
     """
 
     id_to_url = {}
@@ -214,7 +224,11 @@ def get_eq(soup):
 
 
 def main_scrapper_p1(args):
-    """ This function takes main page from the url and will scrap all the updated data
+
+    """ This function is the main scrapper for page 1. It scrapes all the earthquakes from page 1, including the
+    "show more" earthquakes, and returns the earthquakes ID and URl for the more detailed page.
+    (what is the difference with extract_data_from_quakes ?? )
+    previous version : takes main page from the url and will scrap all the updated data
     and more details about each earthquake"""
 
     url_by_dates = get_all_dates(args)
@@ -237,12 +251,11 @@ def main_scrapper_p1(args):
 
 
 def scraping_with_pandas_p2(url):
-    """ this function is used to scrape the detailed pages of each earthquakes.
-    It returns a pandas dataframe of the available data"""
+    """ this function is used to scrape the detailed pages of each earthquake.
+    It returns a pandas dataframe of the available data from the second page."""
     page = requests.get(url)
     dfs = pd.read_html(page.text)  # this creates dataframe directly from the table in h
-    # tml !! In out case it scraped 2 tables from the page
-    # df[0] is  this is the table that we need
+    # df[0] this is the table that we need.
     table_detailed = dfs[0].transpose()
     table_detailed.columns = table_detailed.iloc[0]
     table_detailed = table_detailed.drop(table_detailed.index[0])
@@ -262,9 +275,9 @@ def scraping_with_pandas_all_earthquakes(id_list, url_list):
 
 
 def main():
-    """ function scrapes the earthquakes site. Scrap the individual earthquake
-    information and print the data as list.
-     This uses the mainscrapper_p1 and the pandas scaper for page 2
+    """ This is the main function of the program : it scrapes the earthquakes website. It scraps the individual
+     earthquake information and print to the stdout the data as list.
+     This main function uses the mainscrapper_p1 and the pandas scaper for page 2
      """
 
     parser = argparse.ArgumentParser(add_help=HELP_MESSAGE)
@@ -297,7 +310,8 @@ def main():
         uptade_database.update_database(row, connection)
     logger.info('database updated with all new earthquakes')
 
-    ### scrapping with the API.
+    ### scrapping with the API, second par of the scrapping progam.
+    # This part of the code calls another file name : API_scraper_v1, please see inside for further information
 
     dict_of_df = API_scraper_v1.main()
     logger.info('API scrapping done')

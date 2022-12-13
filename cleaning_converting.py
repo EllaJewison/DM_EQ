@@ -4,7 +4,11 @@ import re
 import pandas as pd
 
 
+### this file stores all the functions needed to clean and convert the data from unusable formats to format fit to use
+### in a SQL database.
+
 def set_epicenter_coord(str_epicenter):
+    """ this function convert the epicenter coordinates from string to a tuple of coordinates as floats  """
     pattern = r"([\d\.]+)°([SN])[^\d]+([\d\.]+)°([EW])"
     result = re.search(pattern, str_epicenter)
 
@@ -23,6 +27,7 @@ def set_epicenter_coord(str_epicenter):
 
 
 def energy_release(e):
+    """ this function convert the energy released from a string to a float in scientific notation"""
     result = re.search(r"([\d.]+) x 10(\d+)", e)
     mantis = float(result[1])
     exponent = int(result[2])
@@ -30,6 +35,8 @@ def energy_release(e):
 
 
 def extract_cities_info(city_string):
+    """ This function extracts the cities information stored as a string and separates into cities names, population
+    and distance to the earthquake. It returns a list mentioned data for each earthquake"""
     if city_string is np.nan:
         return np.nan
     city_string = re.sub(r'^.*}}', '', city_string)
@@ -40,7 +47,8 @@ def extract_cities_info(city_string):
 
 
 def convert(df):
-
+    """ When called on a dataframe, this function performs all converting and cleaning needed to parse the scraped data
+    into to a sql-databse format """
     columns_to_drop = ["Local time at epicenter"]
     df.drop(columns_to_drop, axis=1)
 
@@ -102,7 +110,7 @@ if __name__ == '__main__':
     df = convert(df)
 
 
-    # tests
+    # tests to check if data was converted correctly
 
     print(df['Date & time'])
     print(df['Magnitude'])
