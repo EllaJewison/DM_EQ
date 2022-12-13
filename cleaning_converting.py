@@ -39,8 +39,8 @@ def extract_cities_info(city_string):
     return info
 
 
-
 def convert(df):
+
     columns_to_drop = ["Local time at epicenter"]
     df.drop(columns_to_drop, axis=1)
 
