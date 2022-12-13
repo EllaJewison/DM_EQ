@@ -277,7 +277,8 @@ def main():
 
     try:
         args = parser.parse_args()
-        logger.info('Parse user args successfully')
+        logger.info(f'Parse user args successfully. args are: date = {args.date},'
+                    f'magnitude = {args.magnitude}, num of rows = {args.n_rows}')
     except Exception as e:
         print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {HELP_MESSAGE}')
         logger.error(f'Wrong arguments passed:\n{e}')
