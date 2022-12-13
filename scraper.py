@@ -13,7 +13,7 @@ from datetime import datetime,date, timedelta
 import uptade_database
 import API_scraper_v1
 
-
+MAIN_URL = 'https://www.volcanodiscovery.com/'
 LINK = 'https://www.allquakes.com/earthquakes/archive/'
 HELP_MESSAGE = """This is a CLI to scrape specific information about earthquakes.
 the program will scrape all the relevant information (by date, magnitude) and will update the information
@@ -200,20 +200,6 @@ def extract_data_from_quakes(quakes, args) -> dict:
                     continue
             except ValueError:
                 pass
-        if args.date:
-
-            try:
-                date = datetime.strptime(re.sub(' GMT.*', '', data[0]), '%b %d, %Y %H:%M')
-                if date < args.date[0]:  # making sure date is in the passed
-                    continue
-                if args.date[1] and date > args.date[1]:  # making sure date the second date is the passed
-                    continue
-                    list_dates = get_all_dates(args)  # if dates are okey:
-            except ValueError:
-                pass
-
-        if args.n_rows and len(id_to_url) >= args.n_rows:
-            return id_to_url
 
         id_to_url[eq_id] = url
 
@@ -223,23 +209,6 @@ def extract_data_from_quakes(quakes, args) -> dict:
 def get_eq(soup):
     """this finds all the earthquakes by magnitude"""
     return soup.find_all('tr', {'class': re.compile(r'q\d')})
-
-
-# def get_links_from_client_request(args):
-#     """the function will check if clien askeed for specific dates and return deeded links to scrape"""
-#     default_url = "https://www.allquakes.com/earthquakes/today.html"
-#     if args.date:
-#         try:
-#             date = datetime.now().strftime('%b %d, %Y %H:%M')
-#             if args.date[1] and date > args.date[1]:  # making sure date the second date is the passed
-#                 continue
-#             if date < args.date[0]:  # making sure date is in the passet
-#                 continue
-#                 list_dates = get_all_dates(args)  # if dates are okey:
-#         except ValueError:
-#             pass
-#     else:
-#         return
 
 
 def main_scrapper_p1(args):
@@ -257,8 +226,11 @@ def main_scrapper_p1(args):
         table_eq_dirty = quakes + quakes_show_more
 
         dict_id_url.update(extract_data_from_quakes(table_eq_dirty, args))
+        if args.n_rows and len(dict_id_url) >= args.n_rows:
+            ids, urls = list(dict_id_url.keys()), list(dict_id_url.values())
+            return ids[:args.n_rows], urls[:args.n_rows]
 
-    return dict_id_url
+    return list(dict_id_url.keys()), list(dict_id_url.values())
 
 
 def scraping_with_pandas_p2(url):
@@ -307,10 +279,9 @@ def main():
         print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {HELP_MESSAGE}')
         sys.exit()
 
-    dict_id_url = main_scrapper_p1(args)
-    url_main = 'https://www.volcanodiscovery.com/'
-    url_list = [url_main + link for link in dict_id_url.values()]
-    data = convert(scraping_with_pandas_all_earthquakes(dict_id_url.keys(), url_list))
+    ids, urls = main_scrapper_p1(args)
+    url_list = [MAIN_URL + link for link in urls]
+    data = convert(scraping_with_pandas_all_earthquakes(ids, url_list))
     data = data.astype(object).where(pd.notnull(data), None)
 
     connection = uptade_database.get_connection(args.mysql_user, args.mysql_password, 'earthquake')
