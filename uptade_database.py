@@ -1,6 +1,13 @@
 import pymysql
 import pandas as pd
 import re
+import logging
+
+logging.basicConfig(filename='scraper.log',
+                    format='%(asctime)s-%(levelname)s-FILE:%(filename)s-FUNC:%(funcName)s-LINE:%(lineno)d-%(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 
 def get_connection(user, password, database=None):
@@ -9,16 +16,6 @@ def get_connection(user, password, database=None):
                                  user=user,
                                  password=password,
                                  database=database,
-                                 cursorclass=pymysql.cursors.DictCursor)
-    return connection
-
-
-def get_connected(db):
-    """everytime we want to connect to db"""
-    connection = pymysql.connect(host='localhost',
-                                 user='root',
-                                 password='password',
-                                 database=db,
                                  cursorclass=pymysql.cursors.DictCursor)
     return connection
 
@@ -43,7 +40,6 @@ def update_database(row, connection):
     db_id = run_query(connection, f"select id from earthquakes where link_id = {df_id}")
     if db_id:
         db_id = db_id['id']
-        # todo: fix bug. syntax error
         update_eq_table = """UPDATE earthquakes
                             SET date_time = %s,
                             local_time_at_epicenter = %s, status = %s,
@@ -65,6 +61,7 @@ def update_database(row, connection):
                   row['Estimated seismic energy released'], db_id)
 
         run_query(connection, update_eq_table, values)
+        logger.info(f"Updated earthquake {df_id} in earthquakes table")
     else:
 
         create_eq = """INSERT INTO earthquakes
@@ -86,6 +83,7 @@ def update_database(row, connection):
                   row['Estimated seismic energy released'])
         run_update(connection, create_eq, values)
         db_id = run_query(connection, f"select id from earthquakes where link_id = {df_id}")
+        logger.info(f'Insert earthquake {df_id} into earthquakes table')
         db_id = db_id['id']
 
     if row['Nearby towns and cities']:
@@ -100,6 +98,7 @@ def update_database(row, connection):
 
                 run_update(connection, create_city, (city_name, city_population))
                 city_id = run_query(connection, "select id from cities where city_name = %s", city_name)
+                logger.info(f'Insert city {city_name} into cities table')
                 city_id = city_id['id']
             else:
                 city_id = city_id['id']
@@ -110,6 +109,7 @@ def update_database(row, connection):
                                             VALUES (%s, %s, %s)"""
 
                 run_update(connection, create_eq_city, (db_id, city_id, city_distance))
+                logging.info(f"Insert connection between earthquake {df_id} and  city {city_name} to table eq_cities")
 
 
 def update_fire(df, connection):
@@ -126,6 +126,7 @@ def update_fire(df, connection):
                                 WHERE id = %s"""
             values = (row['title'], row['coordinates'][0], row['coordinates'][1], row['date'], db_id)
             run_update(connection, update_fire, values)
+            logger.info(f'Update fire {df_id} into fire table')
 
         else:
             create_fire = """INSERT INTO fire
@@ -134,6 +135,7 @@ def update_fire(df, connection):
                         (%s, %s, %s, %s, %s)"""
             values = (df_id, row['title'], row['coordinates'][0], row['coordinates'][1], row['date'])
             run_update(connection, create_fire, values)
+            logger.info(f'Insert fire {df_id} into fire table')
 
 
 def update_volcano(df, connection):
@@ -150,6 +152,7 @@ def update_volcano(df, connection):
                                 WHERE id = %s"""
             values = (row['title'], row['coordinates'][0], row['coordinates'][1], row['date'], db_id)
             run_update(connection, update_volcano, values)
+            logger.info(f'Update volcano {df_id} into volcano table')
 
         else:
             create_volcano = """INSERT INTO volcano
@@ -158,6 +161,7 @@ def update_volcano(df, connection):
                         (%s, %s, %s, %s, %s)"""
             values = (df_id, row['title'], row['coordinates'][0], row['coordinates'][1], row['date'])
             run_update(connection, create_volcano, values)
+            logger.info(f'Insert volcano {df_id} into volcano table')
 
 
 def update_iceberg(df, connection):
@@ -174,6 +178,7 @@ def update_iceberg(df, connection):
                                 WHERE id = %s"""
             values = (row['title'], row['magnitude_value'], row['magnitude_unit'], row['date'], db_id)
             run_update(connection, update_iceberg, values)
+            logger.info(f'Update iceberg {df_id} into iceberg table')
 
         else:
             create_iceberg = """INSERT INTO iceberg
@@ -182,6 +187,7 @@ def update_iceberg(df, connection):
                         (%s, %s, %s, %s, %s)"""
             values = (df_id, row['title'], row['magnitude_value'], row['magnitude_unit'], row['date'])
             run_update(connection, create_iceberg, values)
+            logger.info(f'Insert iceberg {df_id} into iceberg table')
 
 
 if __name__ == '__main__':

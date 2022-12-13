@@ -1,7 +1,13 @@
 import requests
 import pandas as pd
 from dateutil import parser
-from uptade_database import update_fire, update_iceberg, update_volcano, get_connection
+import logging
+
+logging.basicConfig(filename='scraper.log',
+                    format='%(asctime)s-%(levelname)s-FILE:%(filename)s-FUNC:%(funcName)s-LINE:%(lineno)d-%(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 API_URL = "https://eonet.gsfc.nasa.gov/api/v3/events"
 
@@ -12,7 +18,7 @@ def get_events_from_api(API_URL):
     Then return a dataframe from the events stores in the json file."""
 
     a = requests.get(API_URL)
-    print('Got the json file from the API !')
+    logger.info('Got the json file from the API')
     dico = a.json()
     df_events = pd.DataFrame.from_dict(data=dico['events'], orient='columns')
     return df_events
@@ -61,7 +67,9 @@ def main():
     df = get_events_from_api(API_URL)
     data = re_organise_df(df)
     data2 = get_info_from_geometry(data)
+    logger.info(f'Create event dataframe with all event information')
     dict_of_df = find_event(data2)
+    logger.info(f'create dict_of_df with key as event type and value as event dataframe')
 
     # converting time string to datetime object, raise an error but its still working
     dict_of_df['Volcano'] = change_date(dict_of_df['Volcano'])

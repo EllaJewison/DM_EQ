@@ -9,9 +9,10 @@ import pandas as pd
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from cleaning_converting import convert
-from datetime import datetime,date, timedelta
+from datetime import datetime, date, timedelta
 import uptade_database
 import API_scraper_v1
+import logging
 
 MAIN_URL = 'https://www.volcanodiscovery.com/'
 LINK = 'https://www.allquakes.com/earthquakes/archive/'
@@ -45,6 +46,12 @@ Examples:
 4. scraper.py user password --magnitude 7 --n_rows 100 -> will scrape all earthquakes that have magnitude above 7
     limited to 100 first earthquakes
 """
+
+logging.basicConfig(filename='scraper.log',
+                    format='%(asctime)s-%(levelname)s-FILE:%(filename)s-FUNC:%(funcName)s-LINE:%(lineno)d-%(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 
 class DateAction(argparse.Action):
@@ -151,7 +158,10 @@ def get_details_url(quake_data_cells):
 def get_all_dates(args):
     """the function gets the input dates from client and returns a list of all links of dates in range"""
     try:
-        if len(args.date)==2:
+        if not args.date:
+            logger.info('scrape earthquakes from the last 48 hours')
+            return ["https://www.allquakes.com/earthquakes/today.html"]
+        elif len(args.date) == 2:
             today = datetime.now()
             start_date = args.date[0]
             end_date = args.date[1]  # perhaps date.now()
@@ -160,18 +170,15 @@ def get_all_dates(args):
             if today > args.date[0] and today > args.date[1]:  # making sure date the second date is the passed
                 for i in range(delta.days + 1):
                     day = start_date + timedelta(days=i)
-                    print(day)
                     list_of_dates.append(day)
+                logger.info(f'scrape earthquakes from dates {list_of_dates}')
                 return [LINK + d.strftime("%Y-%b-%d").lower() + '.html' for d in list_of_dates]
-        elif len(args.date)==1:
-            return [LINK +args.date[0].strftime("%Y-%b-%d").lower() + '.html']
-        elif len(args.date)==0:
-            return ["https://www.allquakes.com/earthquakes/today.html"]
+        elif len(args.date) == 1:
+            logger.info(f'scrape earthquakes from day {args.date[0]}')
+            return [LINK + args.date[0].strftime("%Y-%b-%d").lower() + '.html']
     except ValueError:
+        logger.error("failed to create date list from user date range")
         raise ValueError(f'The date format is invalid')
-
-
-
 
 
 def extract_data_from_quakes(quakes, args) -> dict:
@@ -184,16 +191,11 @@ def extract_data_from_quakes(quakes, args) -> dict:
         eq_id = q.get('id')
         cells = q.find_all('td')
         url = get_details_url(cells)
-        data = [
-            get_date(cells),
-            get_magnitude(cells),
-            get_depth(cells),
-            get_nearest_volcano(cells),
-            get_location(cells)
-        ]
+        magnitude = get_magnitude(cells)
+
         if args.magnitude:
             try:
-                magnitude = float(data[1])
+                magnitude = float(magnitude)
                 if magnitude < args.magnitude[0]:
                     continue
                 if args.magnitude[1] and magnitude > args.magnitude[1]:
@@ -214,7 +216,6 @@ def get_eq(soup):
 def main_scrapper_p1(args):
     """ This function takes main page from the url and will scrap all the updated data
     and more details about each earthquake"""
-    #
 
     url_by_dates = get_all_dates(args)
     dict_id_url = {}
@@ -222,10 +223,12 @@ def main_scrapper_p1(args):
         soup = create_soup_from_link(url)
         quakes = get_eq(soup)
         show_more_soup = extract_show_more_soup(soup)
+        logger.info(f'press "show more" to see all quakes from url {url}')
         quakes_show_more = get_eq(show_more_soup)
         table_eq_dirty = quakes + quakes_show_more
 
         dict_id_url.update(extract_data_from_quakes(table_eq_dirty, args))
+
         if args.n_rows and len(dict_id_url) >= args.n_rows:
             ids, urls = list(dict_id_url.keys()), list(dict_id_url.values())
             return ids[:args.n_rows], urls[:args.n_rows]
@@ -236,10 +239,7 @@ def main_scrapper_p1(args):
 def scraping_with_pandas_p2(url):
     """ this function is used to scrape the detailed pages of each earthquakes.
     It returns a pandas dataframe of the available data"""
-    # testing with one URL
-    # url = "https://www.allquakes.com/earthquakes/quake-info/7220305/mag2quake-Nov-26-2022-43km-SE-of-Avalon-CA.html"
     page = requests.get(url)
-    soup = BeautifulSoup(page.text, 'lxml')
     dfs = pd.read_html(page.text)  # this creates dataframe directly from the table in h
     # tml !! In out case it scraped 2 tables from the page
     # df[0] is  this is the table that we need
@@ -252,10 +252,12 @@ def scraping_with_pandas_p2(url):
 def scraping_with_pandas_all_earthquakes(id_list, url_list):
     """ this returns a pandas dataframe of all the earthquakes detailed (every p2)"""
     table_detailed_all_earthquakes = pd.DataFrame()
-    for link in tqdm(url_list, total=len(url_list)):
+    for idx, link in enumerate(tqdm(url_list, total=len(url_list))):
         table_detailed = scraping_with_pandas_p2(link)
+        logger.info(f'scraped all information for quake num {idx}')
         table_detailed_all_earthquakes = pd.concat([table_detailed_all_earthquakes, table_detailed])
     table_detailed_all_earthquakes["eq_id"] = id_list
+    logger.info('successfully create dataframe with all earthquakes')
     return table_detailed_all_earthquakes
 
 
@@ -275,30 +277,42 @@ def main():
 
     try:
         args = parser.parse_args()
+        logger.info(f'Parse user args successfully. args are: date = {args.date},'
+                    f'magnitude = {args.magnitude}, num of rows = {args.n_rows}')
     except Exception as e:
         print(f'Wrong arguments passed:\n{e}\nUsage instructions:\n {HELP_MESSAGE}')
+        logger.error(f'Wrong arguments passed:\n{e}')
         sys.exit()
 
     ids, urls = main_scrapper_p1(args)
+    logger.info('Select all quakes for scraping by arguments done.')
     url_list = [MAIN_URL + link for link in urls]
     data = convert(scraping_with_pandas_all_earthquakes(ids, url_list))
+    logger.info('convert pandas dataframe columns to sql dtype')
     data = data.astype(object).where(pd.notnull(data), None)
 
     connection = uptade_database.get_connection(args.mysql_user, args.mysql_password, 'earthquake')
+    logger.info('connect to database')
     for _, row in data.iterrows():
         uptade_database.update_database(row, connection)
+    logger.info('database updated with all new earthquakes')
 
     ### scrapping with the API.
 
     dict_of_df = API_scraper_v1.main()
+    logger.info('API scrapping done')
     print('API scrapping done')
 
     uptade_database.update_fire(dict_of_df['Fire'], connection)
+    logger.info('database updated with fire data')
     iceberg = dict_of_df['Fire'].astype(object).where(pd.notnull(dict_of_df['Fire']), None)
     uptade_database.update_iceberg(iceberg, connection)
+    logger.info('database updated with iceberg data')
     uptade_database.update_volcano(dict_of_df['Volcano'], connection)
+    logger.info('database updated with volcano data')
 
     connection.close()
+    logger.info('database updated successfully, connection closed')
 
 
 if __name__ == '__main__':
