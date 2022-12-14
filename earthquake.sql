@@ -1,7 +1,5 @@
 
-DROP DATABASE IF EXISTS  earthquake;
-CREATE DATABASE earthquake;
-USE earthquake;
+USE ella_emuna_salome;
 
 
 CREATE TABLE IF NOT EXISTS earthquakes(id INT AUTO_INCREMENT PRIMARY KEY,

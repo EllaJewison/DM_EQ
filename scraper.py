@@ -25,11 +25,6 @@ Usage:
 scraper.py [-h] [--date DATE]
             [--magnitude MAGNITUDE]
             [--n_rows NUMBER]
-            mysql_user mysql_password
-
-positional arguments:
-  mysql_user
-  mysql_password
 
 options:
   -h, --help            show this help message and exit
@@ -38,13 +33,13 @@ options:
   --n_rows NUMBER
 
 Examples:
-1. scraper.py user password --date 12/11/2022 14/11/2022 -> will scrape all earthquakes from 12/11/2022 to 14/11/2022
-2. scraper.py user password --date 12/11/2022 --magnitude 3.6 8.1 ->
+1. scraper.py --date 12/11/2022 14/11/2022 -> will scrape all earthquakes from 12/11/2022 to 14/11/2022
+2. scraper.py --date 12/11/2022 --magnitude 3.6 8.1 ->
     will scrape all earthquakes from 12/11/2022 until today that have magnitude between 3.6 to 8.1
-3. scraper.py user password --date 12/11/2022 --magnitude 3.6  ->
+3. scraper.py --date 12/11/2022 --magnitude 3.6  ->
     will srcape all earthquakes from 12/11/2022 until today
     that have magnitude above 3.6
-4. scraper.py user password --magnitude 7 --n_rows 100 -> will scrape all earthquakes that have magnitude above 7
+4. scraper.py --magnitude 7 --n_rows 100 -> will scrape all earthquakes that have magnitude above 7
     limited to 100 first earthquakes
 """
 
@@ -102,6 +97,7 @@ class MagnitudeAction(argparse.Action):
             raise ValueError(f'{from_magnitude} must be less than {to_magnitude}')
         if from_magnitude < 0 or (to_magnitude and to_magnitude < 0):
             raise ValueError(f'magnitude must be positive, got {from_magnitude}, {to_magnitude}')
+        setattr(namespace, self.dest, (from_magnitude, to_magnitude))
 
 
 def create_soup_from_link(link):
@@ -129,32 +125,9 @@ def extract_show_more_soup(my_soup):
     return new_soup
 
 
-def get_date(quake_data_cells):
-    """ Return the date of the earthquake """
-    return quake_data_cells[0].contents[0]
-
-
 def get_magnitude(quake_data_cells):
     """return the magnitude of the earthquake"""
     return quake_data_cells[1].contents[0].text
-
-
-def get_depth(quake_data_cells):
-    """return the depth of the earthquake"""
-    try:
-        return quake_data_cells[1].contents[2].replace('\xa0', '')
-    except IndexError:
-        return ''
-
-
-def get_nearest_volcano(quake_data_cells):
-    """return the nearest volcano of the earthquake"""
-    return quake_data_cells[2].text
-
-
-def get_location(quake_data_cells):
-    """return the location of the earthquake"""
-    return quake_data_cells[3].text.rstrip('I FELT IT')
 
 
 def get_details_url(quake_data_cells):
@@ -189,10 +162,10 @@ def get_all_dates(args):
         raise ValueError(f'The date format is invalid')
 
 
-def extract_data_from_quakes(quakes, args) -> dict:
+def extract_ids_filter_by_mag(quakes, args) -> dict:
     """
     This function reads through the HTML contend of quakes and returns a dictionary with the earthquake id as a key
-    and the corresponding url as a value. This url is the link to the second page, with the complete detail about the
+    and the corresponding url as a value, and also filters by the user requested magnitude. This url is the link to the second page, with the complete detail about the
     earthquakes.
     """
 
@@ -223,13 +196,12 @@ def get_eq(soup):
     return soup.find_all('tr', {'class': re.compile(r'q\d')})
 
 
-def main_scrapper_p1(args):
+def scrapper_main_pages_by_dates(args):
 
-    """ This function is the main scrapper for page 1. It scrapes all the earthquakes from page 1, including the
-    "show more" earthquakes, and returns the earthquakes ID and URl for the more detailed page.
-    (what is the difference with extract_data_from_quakes ?? )
-    previous version : takes main page from the url and will scrap all the updated data
-    and more details about each earthquake"""
+    """ This function scrapes all main pages in range of dates requested by the client.
+    It scrapes all the earthquakes, including the "show more" earthquakes,
+    and returns the earthquakes ID and URl for the more detailed page.
+    """
 
     url_by_dates = get_all_dates(args)
     dict_id_url = {}
@@ -241,7 +213,7 @@ def main_scrapper_p1(args):
         quakes_show_more = get_eq(show_more_soup)
         table_eq_dirty = quakes + quakes_show_more
 
-        dict_id_url.update(extract_data_from_quakes(table_eq_dirty, args))
+        dict_id_url.update(extract_ids_filter_by_mag(table_eq_dirty, args))
 
         if args.n_rows and len(dict_id_url) >= args.n_rows:
             ids, urls = list(dict_id_url.keys()), list(dict_id_url.values())
@@ -281,9 +253,6 @@ def main():
      """
 
     parser = argparse.ArgumentParser(add_help=HELP_MESSAGE)
-    parser.add_argument('mysql_user', type=str)
-    parser.add_argument('mysql_password', type=str)
-
     parser.add_argument('--date', nargs='+', action=DateAction)
     parser.add_argument('--magnitude', nargs='+', action=MagnitudeAction)
     parser.add_argument('--n_rows', type=int, action='store')
@@ -297,7 +266,7 @@ def main():
         logger.error(f'Wrong arguments passed:\n{e}')
         sys.exit()
 
-    ids, urls = main_scrapper_p1(args)
+    ids, urls = scrapper_main_pages_by_dates(args)
     logger.info('Select all quakes for scraping by arguments done.')
     url_list = [MAIN_URL + link for link in urls]
     data = convert(scraping_with_pandas_all_earthquakes(ids, url_list))
