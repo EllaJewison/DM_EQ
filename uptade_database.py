@@ -51,8 +51,10 @@ def update_database(row, connection):
                             SET date_time = %s,
                             local_time_at_epicenter = %s, status = %s,
                             magnitude = %s, depth = %s,
-                            epicenter_latitude_longitude = '%s',
-                            antipode = '%s',
+                            epicenter_latitude = %s,
+                            epicenter_longitude = %s,
+                            antipode_latitude = %s,
+                            antipode_longitude = %s,
                             shaking_intensity = %s,
                             felt = %s,
                             primary_data_source = %s,
@@ -62,9 +64,12 @@ def update_database(row, connection):
         values = (row['Date & time'],
                   row['Local time at epicenter'],
                   row['Status'], row['Magnitude'], row['Depth'],
-                  row['Epicenter latitude / longitude'],
-                  row['Antipode'], row['Shaking intensity'],
-                  row['Felt'], row['Primary data source'], row['Nearest volcano'],
+                  row['Epicenter latitude / longitude'][0],
+                  row['Epicenter latitude / longitude'][1],
+                  row['Antipode'][0], row['Antipode'][1],
+                  row['Shaking intensity'],
+                  row['Felt'], row['Primary data source'],
+                  row['Nearest volcano'],
                   row['Estimated seismic energy released'], db_id)
 
         run_query(connection, update_eq_table, values)
@@ -73,16 +78,19 @@ def update_database(row, connection):
 
         create_eq = """INSERT INTO earthquakes
                         (link_id ,date_time, local_time_at_epicenter, status, magnitude,
-                        depth, epicenter_latitude_longitude, antipode, shaking_intensity,felt,primary_data_source,
-                               nearest_volcano,estimated_seismic_energy)
+                        depth, epicenter_latitude, epicenter_longitude, antipode_latitude, antipode_longitude,
+                        shaking_intensity,felt,primary_data_source,
+                        nearest_volcano,estimated_seismic_energy)
                         VALUES
-                        (%s, %s, %s, %s, %s, %s, '%s', '%s', %s, %s, %s, %s, %s)"""
+                        (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         values = (df_id,
                   row['Date & time'],
                   row['Local time at epicenter'], status,
                   row['Magnitude'], row['Depth'],
-                  row['Epicenter latitude / longitude'],
-                  row['Antipode'],
+                  row['Epicenter latitude / longitude'][0],
+                  row['Epicenter latitude / longitude'][1],
+                  row['Antipode'][0],
+                  row['Antipode'][1],
                   row['Shaking intensity'],
                   row['Felt'],
                   row['Primary data source'],
