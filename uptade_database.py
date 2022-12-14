@@ -10,12 +10,12 @@ logging.basicConfig(filename='scraper.log',
 logger = logging.getLogger(__name__)
 
 
-def get_connection(user, password, database=None):
+def get_connection():
     """This function establishes a connection to the database using the given user and password"""
-    connection = pymysql.connect(host='localhost',
-                                 user=user,
-                                 password=password,
-                                 database=database,
+    connection = pymysql.connect(host='data-mining-db1.cttpnp4olbpx.us-west-1.rds.amazonaws.com',
+                                 user='ella_emuna_salome',
+                                 password='ella_emuna_salome',
+                                 database='ella_emuna_salome',
                                  cursorclass=pymysql.cursors.DictCursor)
     return connection
 
@@ -30,9 +30,8 @@ def run_query(connection, query, query_parameters=None):
 
 
 def run_update(connection, query, query_parameters=None):
-    """ this function is called to ???
+    """ this function is used to update the databases and save the changes.
     """
-
     with connection.cursor() as cursor:
         result = cursor.execute(query, query_parameters)
         connection.commit()
