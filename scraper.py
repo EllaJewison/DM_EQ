@@ -273,7 +273,7 @@ def main():
     logger.info('convert pandas dataframe columns to sql dtype')
     data = data.astype(object).where(pd.notnull(data), None)
 
-    connection = uptade_database.get_connection(args.mysql_user, args.mysql_password, 'earthquake')
+    connection = uptade_database.get_connection()
     logger.info('connect to database')
     for _, row in data.iterrows():
         uptade_database.update_database(row, connection)
