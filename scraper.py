@@ -276,6 +276,7 @@ def main():
     connection = uptade_database.get_connection()
     logger.info('connect to database')
     for _, row in data.iterrows():
+        logger.debug(f'updating row num {_} from date {row["Date & time"]}')
         uptade_database.update_database(row, connection)
     logger.info('database updated with all new earthquakes')
 

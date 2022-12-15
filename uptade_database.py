@@ -73,7 +73,7 @@ def update_database(row, connection):
                   row['Estimated seismic energy released'], db_id)
 
         run_query(connection, update_eq_table, values)
-        logger.info(f"Updated earthquake {df_id} in earthquakes table")
+        logger.info(f"Updated earthquake {df_id} of date {row['Date & time']} in earthquakes table")
     else:
 
         create_eq = """INSERT INTO earthquakes
@@ -98,7 +98,7 @@ def update_database(row, connection):
                   row['Estimated seismic energy released'])
         run_update(connection, create_eq, values)
         db_id = run_query(connection, f"select id from earthquakes where link_id = {df_id}")
-        logger.info(f'Insert earthquake {df_id} into earthquakes table')
+        logger.info(f'Insert earthquake {df_id} of date {row["Date & time"]} into earthquakes table')
         db_id = db_id['id']
 
     if row['Nearby towns and cities']:
