@@ -1,3 +1,4 @@
+# coding=utf-8
 """This is the project of Ella, Emuna and Salomé
 on the earthquake website
 "https://www.allquakes.com/earthquakes/today.html" """
